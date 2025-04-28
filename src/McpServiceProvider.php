@@ -52,17 +52,23 @@ class McpServiceProvider extends ServiceProvider
             $cacheStore = $app['cache']->store($config->get('mcp.cache.store'));
             $logger = $app['log']->channel($config->get('mcp.logging.channel'));
 
-            return Server::make()
+            $server = Server::make()
                 ->withContainer($app)
                 ->withConfig($mcpConfig)
                 ->withBasePath(base_path())
                 ->withLogger($logger)
                 ->withCache($cacheStore);
+
+            if (! $this->app->environment('production')) {
+                $server->discover();
+            }
+
+            return $server;
         });
 
-        $this->app->singleton(Processor::class, fn (Application $app) => $app->make(Server::class)->getProcessor());
-        $this->app->singleton(Registry::class, fn (Application $app) => $app->make(Server::class)->getRegistry());
-        $this->app->singleton(TransportState::class, fn (Application $app) => $app->make(Server::class)->getStateManager());
+        $this->app->bind(Processor::class, fn (Application $app) => $app->make(Server::class)->getProcessor());
+        $this->app->bind(Registry::class, fn (Application $app) => $app->make(Server::class)->getRegistry());
+        $this->app->bind(TransportState::class, fn (Application $app) => $app->make(Server::class)->getStateManager());
 
         $this->app->bind(HttpTransportHandler::class, function (Application $app) {
             return new HttpTransportHandler(

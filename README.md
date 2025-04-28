@@ -63,7 +63,7 @@ The primary way to configure the MCP server in Laravel is through the `config/mc
 
 ## Usage
 
-### 1. Defining MCP Elements
+### Defining MCP Elements
 
 Define your MCP Tools, Resources, and Prompts as methods within PHP classes, decorated with attributes from the `php-mcp/server` package (`#[McpTool]`, `#[McpResource]`, `#[McpPrompt]`, etc.).
 
@@ -102,25 +102,28 @@ class MyTools
 *   **Dependency Injection:** Your classes' constructors will be resolved using Laravel's service container, so you can inject any application dependencies (like the `LoggerInterface` above).
 *   **Attribute Usage:** Refer to the [`php-mcp/server` README](https://github.com/php-mcp/server/blob/main/README.md#defining-mcp-elements-with-attributes) for detailed information on defining elements and formatting return values.
 
-### 2. Running Discovery
+### Automatic Discovery (Development) vs. Manual Discovery (Production)
 
-Before clients can connect (especially via stdio), the server needs to discover your annotated elements.
+The server needs to discover your annotated elements before clients can use them.
 
-```bash
-php artisan mcp:discover
-```
-This command scans the configured directories and caches the found elements using the configured Laravel cache store. It's recommended to run this during deployment or whenever your MCP elements change.
+*   **Development:** In non-production environments (e.g., `APP_ENV=local`), the server will **automatically discover** elements the first time the MCP server is needed (like on the first relevant HTTP request or Artisan command). You generally **do not** need to run the command manually during development after adding or changing elements.
 
-### 3. Running the Server
+*   **Production:** For performance reasons, automatic discovery is **disabled** in production environments (`APP_ENV=production`). You **must run the discovery command manually** as part of your deployment process:
+
+    ```bash
+    php artisan mcp:discover
+    ```
+
+    This command scans the configured directories and caches the found elements using the configured Laravel cache store. Running it during deployment ensures your production environment uses the pre-discovered, cached elements for optimal performance.
+
+    *(You can still run `mcp:discover` manually in development if you wish, for example, to pre-populate the cache.)*
+
+### Running the Server
 
 You can expose your MCP server using either the stdio or HTTP+SSE transport.
 
 **Stdio Transport:**
 
-*   Run the server using the Artisan command:
-    ```bash
-    php artisan mcp:serve
-    ```
 *   Configure your MCP client (Cursor, Claude Desktop) to connect via command. **Important:** Ensure you provide the **full path** to your project's `artisan` file.
 
     *Example Client Config (e.g., `.cursor/mcp.json`):*
@@ -142,7 +145,7 @@ You can expose your MCP server using either the stdio or HTTP+SSE transport.
 **HTTP+SSE Transport:**
 
 *   **Enable:** Ensure `transports.http.enabled` is `true` in `config/mcp.php`.
-*   **Routes:** The package automatically registers two routes (by default `/mcp/sse` [GET] and `/mcp` [POST]) using the configured prefix and middleware (`web` by default).
+*   **Routes:** The package automatically registers two routes (by default `/mcp/sse` [GET] and `/mcp/message` [POST]) using the configured prefix and middleware (`web` by default).
 *   
 *   **Web Server Environment (CRITICAL):** 
     *   The built-in `php artisan serve` development server **cannot reliably handle** the concurrent nature of SSE (long-running GET request) and subsequent POST requests from the MCP client. This is because it runs as a single PHP process. You will likely encounter hangs or requests not being processed.
@@ -189,7 +192,7 @@ You can expose your MCP server using either the stdio or HTTP+SSE transport.
     ```
     The server will automatically inform the client about the correct POST endpoint URL (including a unique `?clientId=...` query parameter) via the initial `endpoint` event sent over the SSE connection.
 
-### 4. Other Commands
+### Other Commands
 
 *   **List Elements:** View the discovered MCP elements.
     ```bash
@@ -203,7 +206,7 @@ You can expose your MCP server using either the stdio or HTTP+SSE transport.
     php artisan mcp:list --json 
     ```
 
-### 5. Dynamic Updates (Notifications)
+### Dynamic Updates (Notifications)
 
 If the list of available tools, resources, or prompts changes while the server is running, or if a specific resource's content is updated, you can notify connected clients (primarily useful for HTTP+SSE).
 
