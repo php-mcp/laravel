@@ -2,7 +2,7 @@
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/php-mcp/laravel.svg?style=flat-square)](https://packagist.org/packages/php-mcp/laravel)
 [![Total Downloads](https://img.shields.io/packagist/dt/php-mcp/laravel.svg?style=flat-square)](https://packagist.org/packages/php-mcp/laravel)
-[![Tests](https://github.com/php-mcp/laravel/actions/workflows/tests.yml/badge.svg)](https://github.com/php-mcp/laravel/actions/workflows/tests.yml)
+<!-- [![Tests](https://github.com/php-mcp/laravel/actions/workflows/tests.yml/badge.svg)](https://github.com/php-mcp/laravel/actions/workflows/tests.yml) -->
 [![License](https://img.shields.io/packagist/l/php-mcp/laravel.svg?style=flat-square)](LICENSE)
 
 Integrates the core [`php-mcp/server`](https://github.com/php-mcp/server) package seamlessly into your Laravel application, allowing you to expose parts of your application as **Model Context Protocol (MCP)** tools, resources, and prompts using simple PHP attributes.
