@@ -64,7 +64,7 @@ The primary way to configure the MCP server in Laravel is through the `config/mc
 
 ### Defining MCP Elements
 
-Define your MCP Tools, Resources, and Prompts as methods within PHP classes, decorated with attributes from the `php-mcp/server` package (`#[McpTool]`, `#[McpResource]`, `#[McpPrompt]`, etc.).
+Define your MCP Tools, Resources, and Prompts by decorating methods **or invokable classes** with attributes from the `php-mcp/server` package (`#[McpTool]`, `#[McpResource]`, `#[McpPrompt]`, `#[McpResourceTemplate]`).
 
 Place these classes in a directory included in the `discovery.directories` config array (e.g., `app/Mcp/MyTools.php`).
 
@@ -98,8 +98,8 @@ class MyTools
 }
 ```
 
-*   **Dependency Injection:** Your classes' constructors will be resolved using Laravel's service container, so you can inject any application dependencies (like the `LoggerInterface` above).
-*   **Attribute Usage:** Refer to the [`php-mcp/server` README](https://github.com/php-mcp/server/blob/main/README.md#defining-mcp-elements-with-attributes) for detailed information on defining elements and formatting return values.
+*   **Dependency Injection:** Your classes' constructors (or invokable classes) will be resolved using Laravel's service container, so you can inject any application dependencies (like the `LoggerInterface` above).
+*   **Attribute Usage:** Refer to the [`php-mcp/server` README](https://github.com/php-mcp/server/blob/main/README.md#attributes-for-discovery) for detailed information on defining elements (both on methods and invokable classes) and formatting return values.
 
 ### Automatic Discovery (Development) vs. Manual Discovery (Production)
 
