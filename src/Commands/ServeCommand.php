@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PhpMcp\Laravel\Server\Commands;
 
 use Illuminate\Console\Command;
+use PhpMcp\Server\Server;
 use PhpMcp\Server\Transports\StdioTransportHandler;
 use Psr\Log\LoggerInterface;
 
@@ -30,13 +31,16 @@ class ServeCommand extends Command
      * The StdioTransportHandler's start() method contains the blocking loop
      * for reading STDIN and writing to STDOUT.
      */
-    public function handle(StdioTransportHandler $handler, LoggerInterface $logger): int
+    public function handle(Server $server): int
     {
         if (! config('mcp.transports.stdio.enabled', false)) {
             $this->error('MCP STDIO transport is disabled. Cannot run mcp:serve.');
 
             return Command::FAILURE;
         }
+
+        $handler = new StdioTransportHandler($server);
+        $logger = app(LoggerInterface::class);
 
         $logger->info('Starting MCP server via mcp:serve (STDIO)...');
         $this->info('MCP server starting via STDIO. Listening for requests...');

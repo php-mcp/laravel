@@ -6,7 +6,7 @@ namespace PhpMcp\Laravel\Server\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use PhpMcp\Server\State\TransportState;
+use PhpMcp\Server\Server;
 use PhpMcp\Server\Transports\HttpTransportHandler;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -14,16 +14,20 @@ use Throwable;
 
 class McpController
 {
+    private HttpTransportHandler $handler;
+
+    private LoggerInterface $logger;
+
     /**
      * MCP Controller Constructor
      *
      * Inject dependencies resolved by the service container.
      */
-    public function __construct(
-        private readonly HttpTransportHandler $handler,
-        private readonly TransportState $state,
-        private readonly LoggerInterface $logger
-    ) {}
+    public function __construct(Server $server)
+    {
+        $this->handler = new HttpTransportHandler($server);
+        $this->logger = app(LoggerInterface::class);
+    }
 
     /**
      * Handle client message (HTTP POST endpoint).

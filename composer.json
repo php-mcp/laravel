@@ -21,7 +21,7 @@
     "require": {
         "php": "^8.1",
         "laravel/framework": "^9.46 || ^10.34 || ^11.29 || ^12.0",
-        "php-mcp/server": "^1.0"
+        "php-mcp/server": "^1.1.0"
     },
     "require-dev": {
         "laravel/pint": "^1.13",
@@ -30,8 +30,7 @@
         "pestphp/pest-plugin-laravel": "^2.0",
         "mockery/mockery": "^1.6",
         "phpunit/phpunit": "^10.0 || ^11.0",
-        "react/http": "^1.11",
-        "php-mcp/react-transport": "^0.1.0"
+        "react/http": "^1.11"
     },
     "autoload": {
         "psr-4": {
