@@ -15,12 +15,10 @@ use PhpMcp\Laravel\Server\Events\PromptsListChanged;
 use PhpMcp\Laravel\Server\Events\ResourcesListChanged;
 use PhpMcp\Laravel\Server\Events\ToolsListChanged;
 use PhpMcp\Laravel\Server\Listeners\McpNotificationListener;
-use PhpMcp\Server\Processor;
-use PhpMcp\Server\Registry;
+use PhpMcp\Server\Contracts\ConfigurationRepositoryInterface;
 use PhpMcp\Server\Server;
-use PhpMcp\Server\State\TransportState;
-use PhpMcp\Server\Transports\HttpTransportHandler;
-use PhpMcp\Server\Transports\StdioTransportHandler;
+use Psr\Log\LoggerInterface;
+use Psr\SimpleCache\CacheInterface;
 
 class McpServiceProvider extends ServiceProvider
 {
@@ -46,51 +44,27 @@ class McpServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../config/mcp.php', 'mcp');
 
         $this->app->singleton(Server::class, function (Application $app) {
-            $config = $app['config'];
-
-            $mcpConfig = new ConfigAdapter($config);
-            $cacheStore = $app['cache']->store($config->get('mcp.cache.store'));
-            $logger = $app['log']->channel($config->get('mcp.logging.channel'));
-
             $server = Server::make()
                 ->withContainer($app)
-                ->withConfig($mcpConfig)
                 ->withBasePath(base_path())
-                ->withLogger($logger)
-                ->withCache($cacheStore);
+                ->withScanDirectories($app['config']->get('mcp.discovery.directories', ['app/Mcp']));
 
             if (! $this->app->environment('production')) {
                 $server->discover();
             }
 
-            return $server;
-        });
+            $registry = $server->getRegistry();
 
-        $this->app->bind(Processor::class, fn (Application $app) => $app->make(Server::class)->getProcessor());
-        $this->app->bind(Registry::class, fn (Application $app) => $app->make(Server::class)->getRegistry());
-        $this->app->bind(TransportState::class, fn (Application $app) => $app->make(Server::class)->getStateManager());
-
-        $this->app->bind(HttpTransportHandler::class, function (Application $app) {
-            return new HttpTransportHandler(
-                $app->make(Processor::class),
-                $app->make(TransportState::class),
-                $app['log']
-            );
-        });
-
-        $this->app->bind(StdioTransportHandler::class, function (Application $app) {
-            return new StdioTransportHandler(
-                $app->make(Processor::class),
-                $app->make(TransportState::class),
-                $app['log']
-            );
-        });
-
-        $this->app->afterResolving(Registry::class, function (Registry $registry) {
             $registry->setToolsChangedNotifier(fn () => ToolsListChanged::dispatch());
             $registry->setResourcesChangedNotifier(fn () => ResourcesListChanged::dispatch());
             $registry->setPromptsChangedNotifier(fn () => PromptsListChanged::dispatch());
+
+            return $server;
         });
+
+        $this->app->bind(ConfigurationRepositoryInterface::class, fn (Application $app) => new ConfigAdapter($app['config']));
+        $this->app->bind(LoggerInterface::class, fn (Application $app) => $app['log']->channel($app['config']->get('mcp.logging.channel')));
+        $this->app->bind(CacheInterface::class, fn (Application $app) => $app['cache']->store($app['config']->get('mcp.cache.store')));
     }
 
     public function boot(): void
