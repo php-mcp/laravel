@@ -33,7 +33,7 @@ class ListCommand extends Command
      */
     public function handle(Registry $registry): int
     {
-        $registry->loadElements(); // Ensure elements are loaded
+        $registry->loadElementsFromCache(); // Ensure elements are loaded
 
         $type = $this->argument('type');
         $outputJson = $this->option('json');
