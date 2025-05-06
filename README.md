@@ -26,10 +26,10 @@ This package handles:
     ```bash
     composer require php-mcp/laravel
     ```
-2.  The `LaravelMcpServiceProvider` will be automatically discovered and registered by Laravel.
+2.  The `McpServiceProvider` will be automatically discovered and registered by Laravel.
 3.  Publish the configuration file:
     ```bash
-    php artisan vendor:publish --provider="PhpMcp\Laravel\Server\LaravelMcpServiceProvider" --tag="mcp-config"
+    php artisan vendor:publish --provider="PhpMcp\Laravel\Server\McpServiceProvider" --tag="mcp-config"
     ```
     This will create a `config/mcp.php` file where you can customize the server's behavior.
 
