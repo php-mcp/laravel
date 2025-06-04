@@ -94,27 +94,61 @@ PHP MCP Laravel provides two approaches to define your MCP elements: manual regi
 
 ### Manual Registration
 
-The recommended approach is using the fluent `Mcp` facade to manually register your elements in `routes/mcp.php` (this path can be changed in config/mcp.php via the discovery.definitions_file key):
+The recommended approach is using the fluent `Mcp` facade to manually register your elements in `routes/mcp.php` (this path can be changed in config/mcp.php via the discovery.definitions_file key).
 
 ```php
-// routes/mcp.php
+Mcp::tool([MyHandlers::class, 'calculateSum']);
 
-use App\Mcp\MyLaravelTools;
-use App\Mcp\TopicSummarizer;
-use PhpMcp\Laravel\Server\Facades\Mcp;
+Mcp::resource( 'status://app/health', [MyHandlers::class, 'getAppStatus']);
 
-Mcp::tool('laravel_adder', [MyLaravelTools::class, 'add'])
-    ->description('Adds two numbers using Laravel.');
+Mcp::prompt(MyInvokableTool::class);
 
-Mcp::resource('config://app/name', [MyLaravelTools::class, 'getAppName'])
-    ->name('laravel_app_name')
-    ->mimeType('text/plain');
-
-Mcp::prompt('topic_summarizer', TopicSummarizer::class);
-
-Mcp::resourceTemplate('user://{userId}/profile', [MyLaravelTools::class, 'getUserProfile'])
-    ->mimeType('application/json');
+Mcp::resourceTemplate('user://{id}/data', [MyHandlers::class, 'getUserData']);
 ```
+
+The facade provides several registration methods, each with optional fluent configuration methods:
+
+#### Tools (`Mcp::tool()`)
+
+Defines an action or function the MCP client can invoke. Register a tool by providing either:
+- Just the handler: `Mcp::tool(MyTool::class)` 
+- Name and handler: `Mcp::tool('my_tool', [MyClass::class, 'method'])`
+
+Available configuration methods:
+- `name()`: Override the inferred name
+- `description()`: Set a custom description
+
+#### Resources (`Mcp::resource()`)
+
+Defines a specific, static piece of content or data identified by a URI. Register a resource by providing:
+- `$uri` (`required`): The unique URI for this resource instance (e.g., `config://app/settings`).
+- `$handler`: The handler that will return the resource's content.
+
+Available configuration methods:
+- `name(string $name): self`: Sets a human-readable name. Inferred if omitted.
+- `description(string $description): self`: Sets a description. Inferred if omitted.
+- `mimeType(string $mimeType): self`: Specifies the resource's MIME type. Can sometimes be inferred from the handler's return type or content.
+- `size(?int $size): self`: Specifies the resource size in bytes, if known.
+- `annotations(array $annotations): self`: Adds MCP-standard annotations (e.g., ['audience' => ['user']]).
+
+#### Resource Template (`Mcp::resourceTemplate()`)
+
+Defines a handler for resource URIs that contain variable parts, allowing dynamic resource instance generation. Register a resource template by providing:
+- `$uriTemplate` (`required`): The URI template string (`RFC 6570`), e.g., `user://{userId}/profile`.
+- `$handler`: The handler method. Its parameters must match the variables in the `$uriTemplate`.
+
+Available configuration methods:
+- `name(string $name): self`: Sets a human-readable name for the template type.
+- `description(string $description): self`: Sets a description for the template.
+- `mimeType(string $mimeType): self`: Sets a default MIME type for resources resolved by this template.
+- `annotations(array $annotations): self`: Adds MCP-standard annotations.
+
+#### Prompts (`Mcp::prompt()`)
+
+Defines a generator for MCP prompt messages, often used to construct conversations for an LLM. Register a prompt by providing just the handler, or the name and handler.
+- `$name` (`optional`): The MCP prompt name. Inferred if omitted.
+- `$handler`: The handler method. Its parameters become the prompt's input arguments.
+
 
 The package automatically resolves handlers through Laravel's service container, allowing you to inject dependencies through constructor injection. Each registration method accepts either an invokable class or a `[class, method]` array.
 
@@ -124,7 +158,7 @@ Manually registered elements are always available regardless of cache status and
 
 ### Attribute-Based Discovery
 
-As an alternative, you can use PHP 8 attributes to mark your methods or invokable classes as MCP elements:
+As an alternative, you can use PHP 8 attributes to mark your methods or invokable classes as MCP elements. That way, you don't have to manually register them in the definitions file:
 
 ```php
 namespace App\Mcp;
@@ -148,7 +182,7 @@ class DiscoveredElements
 }
 ```
 
-In development environments with `auto_discover` enabled in your config, these elements are automatically discovered when needed. For production or to manually trigger discovery, run:
+When `auto_discover` enabled in your config, these elements are automatically discovered when needed. For production or to manually trigger discovery, run:
 
 ```bash
 php artisan mcp:discover
