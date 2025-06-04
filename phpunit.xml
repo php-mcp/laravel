@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.3/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Feature">
+            <directory suffix="Test.php">./tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory suffix=".php">./app</directory>
+            <directory suffix=".php">./src</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="APP_KEY" value="base64:djwPuw5vRI2ZApMzsYc6n+t8x+y2Re17k4h9kPutKlY="/>
+        <env name="MCP_SERVER_NAME" value="Test MCP Laravel Server"/>
+        <env name="MCP_SERVER_VERSION" value="0.1-test"/>
+        <env name="MCP_AUTO_DISCOVER" value="true"/>
+        <env name="MCP_DISCOVERY_PATH" value="App/Mcp"/>
+        <env name="MCP_CACHE_STORE" value="array"/>
+        <env name="MCP_CACHE_TTL" value="3600"/>
+        <env name="MCP_HTTP_INTEGRATED_ENABLED" value="true"/>
+    </php>
+</phpunit>
