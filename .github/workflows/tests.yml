@@ -32,7 +32,7 @@ jobs:
           coverage: none
 
       - name: Install Composer dependencies
-        run: composer update --no-interaction --prefer-dist
+        run: composer install --no-interaction --prefer-dist
 
       - name: Run Tests
         run: composer test

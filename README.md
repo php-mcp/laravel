@@ -63,12 +63,13 @@ All MCP server settings are managed in `config/mcp.php`. Here are the key sectio
 ### Transport Configuration
 *   **`transports`**: Available communication methods
     *   **`stdio`**: CLI-based transport
-        *   `enabled`: Enable the `mcp:serve` command
+        *   `enabled`: Enable the `mcp:serve` command with `stdio` option.
     *   **`http_dedicated`**: Standalone HTTP server
-        *   `enabled`, `host`, `port`, `path_prefix` settings
+        *   `enabled`: Enable the `mcp:serve` command with `http` option.
+        *   `host`, `port`, `path_prefix` settings
     *   **`http_integrated`**: Laravel route-based server
         *   `enabled`: Serve through Laravel routes
-        *   `prefix`: URL prefix (default: 'mcp')
+        *   `route_prefix`: URL prefix (default: 'mcp')
         *   `middleware`: Applied middleware (default: 'web')
 
 ### Cache & Performance

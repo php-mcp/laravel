@@ -6,6 +6,7 @@ namespace PhpMcp\Laravel;
 
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Support\DeferrableProvider;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use PhpMcp\Laravel\Commands\DiscoverCommand;
@@ -22,23 +23,6 @@ use PhpMcp\Server\Server;
 
 class McpServiceProvider extends ServiceProvider implements DeferrableProvider
 {
-    /**
-     * The event listener mappings for the application.
-     *
-     * @var array<class-string, array<int, class-string>>
-     */
-    protected $listen = [
-        ToolsListChanged::class => [
-            McpNotificationListener::class,
-        ],
-        ResourcesListChanged::class => [
-            McpNotificationListener::class,
-        ],
-        PromptsListChanged::class => [
-            McpNotificationListener::class,
-        ],
-    ];
-
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/mcp.php', 'mcp');
@@ -55,7 +39,12 @@ class McpServiceProvider extends ServiceProvider implements DeferrableProvider
      */
     public function provides(): array
     {
-        return [Server::class, LaravelHttpTransport::class];
+        return [
+            McpRegistrar::class,
+            Server::class,
+            Registry::class,
+            LaravelHttpTransport::class,
+        ];
     }
 
     public function boot(): void
@@ -64,6 +53,7 @@ class McpServiceProvider extends ServiceProvider implements DeferrableProvider
         $this->buildServer();
         $this->bootConfig();
         $this->bootRoutes();
+        $this->bootEvents();
         $this->bootCommands();
         $this->bootEventListeners();
     }
@@ -164,6 +154,14 @@ class McpServiceProvider extends ServiceProvider implements DeferrableProvider
                 ListCommand::class,
             ]);
         }
+    }
+
+    protected function bootEvents(): void
+    {
+        Event::listen(
+            [ToolsListChanged::class, ResourcesListChanged::class, PromptsListChanged::class],
+            McpNotificationListener::class,
+        );
     }
 
     protected function bootEventListeners(): void
