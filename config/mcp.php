@@ -29,7 +29,7 @@ return [
     */
     'discovery' => [
         'base_path' => base_path(),
-        'directories' => array_filter(explode(',', env('MCP_DISCOVERY_PATH', 'app/Mcp'))),
+        'directories' => array_filter(explode(',', env('MCP_DISCOVERY_DIRECTORIES', 'app/Mcp'))),
         'exclude_dirs' => [
             'vendor',
             'tests',
