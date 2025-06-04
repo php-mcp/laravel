@@ -2,6 +2,7 @@
 
 namespace PhpMcp\Laravel\Tests;
 
+use Illuminate\Config\Repository as ConfigRepository;
 use Orchestra\Testbench\TestCase as OrchestraTestCase;
 use PhpMcp\Laravel\McpServiceProvider;
 
@@ -27,9 +28,8 @@ abstract class TestCase extends OrchestraTestCase
         $this->definitionsFilePath = __DIR__ . '/Stubs/routes/mcp-definitions.php';
 
         $app['config']->set('mcp.discovery.definitions_file', $this->definitionsFilePath);
+        $app['config']->set('mcp.discovery.directories', ['App/Mcp']);
         $app['config']->set('mcp.discovery.base_path', __DIR__ . '/Stubs');
-
-        $app['config']->set('mcp.logging.channel', 'null');
     }
 
     /**

@@ -28,7 +28,7 @@
         <env name="MCP_SERVER_NAME" value="Test MCP Laravel Server"/>
         <env name="MCP_SERVER_VERSION" value="0.1-test"/>
         <env name="MCP_AUTO_DISCOVER" value="true"/>
-        <env name="MCP_DISCOVERY_PATH" value="App/Mcp"/>
+        <env name="MCP_DISCOVERY_DIRECTORIES" value="App/Mcp"/>
         <env name="MCP_CACHE_STORE" value="array"/>
         <env name="MCP_CACHE_TTL" value="3600"/>
         <env name="MCP_HTTP_INTEGRATED_ENABLED" value="true"/>
