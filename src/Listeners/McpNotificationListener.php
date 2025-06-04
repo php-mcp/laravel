@@ -1,22 +1,26 @@
 <?php
 
-namespace PhpMcp\Laravel\Server\Listeners;
+namespace PhpMcp\Laravel\Listeners;
 
-use PhpMcp\Laravel\Server\Events\McpNotificationEvent;
-use PhpMcp\Laravel\Server\Events\ResourceUpdated;
-use PhpMcp\Server\State\TransportState;
+use PhpMcp\Laravel\Events\McpNotificationEvent;
+use PhpMcp\Laravel\Events\ResourceUpdated;
+use PhpMcp\Server\Server;
+use PhpMcp\Server\State\ClientStateManager;
 
 /**
  * Handles routing MCP notifications to the appropriate transport.
  */
 class McpNotificationListener
 {
+    private ClientStateManager $clientStateManager;
     /**
      * Create a new event handler instance.
      */
     public function __construct(
-        private TransportState $transportState
-    ) {}
+        private Server $server
+    ) {
+        $this->clientStateManager = $server->getClientStateManager();
+    }
 
     /**
      * Handle the event.
@@ -37,10 +41,11 @@ class McpNotificationListener
      */
     private function handleResourceUpdated(ResourceUpdated $event): void
     {
-        $subscribers = $this->transportState->getResourceSubscribers($event->uri);
+        $subscribers = $this->clientStateManager->getResourceSubscribers($event->uri);
 
+        $message = json_encode($event->toNotification()->toArray());
         foreach ($subscribers as $clientId) {
-            $this->transportState->queueMessage($clientId, $event->toNotification());
+            $this->clientStateManager->queueMessage($clientId, $message);
         }
     }
 
@@ -49,10 +54,11 @@ class McpNotificationListener
      */
     private function handleListChanged(McpNotificationEvent $event): void
     {
-        $activeClients = $this->transportState->getActiveClients();
+        $activeClients = $this->clientStateManager->getActiveClients();
 
+        $message = json_encode($event->toNotification()->toArray());
         foreach ($activeClients as $clientId) {
-            $this->transportState->queueMessage($clientId, $event->toNotification());
+            $this->clientStateManager->queueMessage($clientId, $message);
         }
     }
 }

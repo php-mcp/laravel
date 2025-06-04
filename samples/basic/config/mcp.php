@@ -5,35 +5,63 @@ return [
     |--------------------------------------------------------------------------
     | MCP Server Information
     |--------------------------------------------------------------------------
+    |
+    | This section defines basic information about your MCP server instance,
+    | including its name, version, and any initialization instructions that
+    | should be provided to clients during the initial handshake.
+    |
     */
     'server' => [
-        'name' => env('MCP_SERVER_NAME', 'Laravel MCP Sample'),
+        'name' => env('MCP_SERVER_NAME', 'Laravel MCP'),
         'version' => env('MCP_SERVER_VERSION', '1.0.0'),
+        'instructions' => env('MCP_SERVER_INSTRUCTIONS'),
     ],
 
     /*
     |--------------------------------------------------------------------------
     | MCP Discovery Configuration
     |--------------------------------------------------------------------------
+    |
+    | These options control how the MCP server discovers and registers tools,
+    | resources and prompts in your application. You can configure which
+    | directories to scan, what to exclude, and how discovery behaves.
+    |
     */
     'discovery' => [
-        // Relative paths from project root (base_path()) to scan for MCP elements.
+        'base_path' => base_path(),
         'directories' => [
             env('MCP_DISCOVERY_PATH', 'app/Mcp'),
         ],
-        // If true, discovery cache will be cleared when DiscoverCommand runs.
-        'clear_cache_on_discover' => true,
+        'exclude_dirs' => [
+            'vendor',
+            'tests',
+            'storage',
+            'public',
+            'resources',
+            'bootstrap',
+            'config',
+            'database',
+            'routes',
+            'node_modules',
+            '.git',
+        ],
+        'definitions_file' => base_path('routes/mcp.php'),
+        'auto_discover' => env('MCP_AUTO_DISCOVER', true),
+        'save_to_cache' => env('MCP_DISCOVERY_SAVE_TO_CACHE', true),
     ],
 
     /*
     |--------------------------------------------------------------------------
     | MCP Cache Configuration
     |--------------------------------------------------------------------------
+    |
+    | Configure how the MCP server caches discovered elements and transport
+    | state using Laravel's cache system. You can specify which store to use
+    | and how long items should be cached.
+    |
     */
     'cache' => [
-        'store' => env('MCP_CACHE_STORE', null),
-        'elements_key' => env('MCP_CACHE_ELEMENTS_KEY', 'mcp:elements'),
-        'state_prefix' => env('MCP_CACHE_STATE_PREFIX', 'mcp:state:'),
+        'store' => env('MCP_CACHE_STORE', config('cache.default')),
         'ttl' => env('MCP_CACHE_TTL', 3600),
     ],
 
@@ -41,44 +69,75 @@ return [
     |--------------------------------------------------------------------------
     | MCP Transport Configuration
     |--------------------------------------------------------------------------
+    |
+    | Configure the available transports for MCP communication. Three types are
+    | supported: stdio for CLI clients, http_dedicated for a standalone server,
+    | and http_integrated for serving through Laravel's routing system.
+    |
     */
     'transports' => [
-        'http' => [
-            'enabled' => env('MCP_HTTP_ENABLED', true),
-            'path' => env('MCP_HTTP_PATH', 'mcp'),
-            'middleware' => ['web'],
-            'domain' => env('MCP_HTTP_DOMAIN'),
-        ],
         'stdio' => [
             'enabled' => env('MCP_STDIO_ENABLED', true),
+        ],
+
+        'http_dedicated' => [
+            'enabled' => env('MCP_HTTP_DEDICATED_ENABLED', true),
+            'host' => env('MCP_HTTP_DEDICATED_HOST', '127.0.0.1'),
+            'port' => (int) env('MCP_HTTP_DEDICATED_PORT', 8090),
+            'path_prefix' => env('MCP_HTTP_DEDICATED_PATH_PREFIX', 'mcp'),
+            'ssl_context_options' => [],
+        ],
+
+        'http_integrated' => [
+            'enabled' => env('MCP_HTTP_INTEGRATED_ENABLED', true),
+            'route_prefix' => env('MCP_HTTP_INTEGRATED_ROUTE_PREFIX', 'mcp'),
+            'middleware' => explode(',', env('MCP_HTTP_INTEGRATED_MIDDLEWARE', 'web')),
+            'domain' => env('MCP_HTTP_INTEGRATED_DOMAIN'),
+            'sse_poll_interval' => (int) env('MCP_HTTP_INTEGRATED_SSE_POLL_SECONDS', 1),
         ],
     ],
 
     /*
     |--------------------------------------------------------------------------
-    | MCP Protocol & Capabilities
+    | Pagination Limit
     |--------------------------------------------------------------------------
+    |
+    | This value determines the maximum number of items that will be returned
+    | by list methods in the MCP server.
+    |
     */
-    'protocol_versions' => [
-        '2024-11-05',
-    ],
     'pagination_limit' => env('MCP_PAGINATION_LIMIT', 50),
+
+    /*
+    |--------------------------------------------------------------------------
+    | MCP Capabilities Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Define which MCP features are enabled in your server instance. This includes
+    | support for tools, resources, prompts, and their related functionality like
+    | subscriptions and change notifications.
+    |
+    */
     'capabilities' => [
         'tools' => [
             'enabled' => env('MCP_CAP_TOOLS_ENABLED', true),
             'listChanged' => env('MCP_CAP_TOOLS_LIST_CHANGED', true),
         ],
+
         'resources' => [
             'enabled' => env('MCP_CAP_RESOURCES_ENABLED', true),
             'subscribe' => env('MCP_CAP_RESOURCES_SUBSCRIBE', true),
             'listChanged' => env('MCP_CAP_RESOURCES_LIST_CHANGED', true),
         ],
+
         'prompts' => [
             'enabled' => env('MCP_CAP_PROMPTS_ENABLED', true),
             'listChanged' => env('MCP_CAP_PROMPTS_LIST_CHANGED', true),
         ],
+
         'logging' => [
             'enabled' => env('MCP_CAP_LOGGING_ENABLED', true),
+            'setLevel' => env('MCP_CAP_LOGGING_SET_LEVEL', false),
         ],
     ],
 
@@ -86,9 +145,13 @@ return [
     |--------------------------------------------------------------------------
     | Logging Configuration
     |--------------------------------------------------------------------------
+    |
+    | Configure how the MCP server handles logging. You can specify which Laravel
+    | log channel to use and set the default log level.
+    |
     */
     'logging' => [
-        'channel' => env('MCP_LOG_CHANNEL'),
+        'channel' => env('MCP_LOG_CHANNEL', config('logging.default')),
         'level' => env('MCP_LOG_LEVEL', 'info'),
     ],
 ];

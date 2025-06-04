@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
-use PhpMcp\Laravel\Server\Http\Controllers\McpController;
+use PhpMcp\Laravel\Http\Controllers\McpController;
 
 /*
 |--------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 <?php
 
-namespace PhpMcp\Laravel\Server\Events;
+namespace PhpMcp\Laravel\Events;
 
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;

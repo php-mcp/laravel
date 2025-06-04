@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace PhpMcp\Laravel\Server;
+namespace PhpMcp\Laravel;
 
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use PhpMcp\Laravel\Server\Adapters\ConfigAdapter;
-use PhpMcp\Laravel\Server\Commands\DiscoverCommand;
-use PhpMcp\Laravel\Server\Commands\ListCommand;
-use PhpMcp\Laravel\Server\Commands\ServeCommand;
-use PhpMcp\Laravel\Server\Events\PromptsListChanged;
-use PhpMcp\Laravel\Server\Events\ResourcesListChanged;
-use PhpMcp\Laravel\Server\Events\ToolsListChanged;
-use PhpMcp\Laravel\Server\Listeners\McpNotificationListener;
-use PhpMcp\Server\Contracts\ConfigurationRepositoryInterface;
+use PhpMcp\Laravel\Commands\DiscoverCommand;
+use PhpMcp\Laravel\Commands\ListCommand;
+use PhpMcp\Laravel\Commands\ServeCommand;
+use PhpMcp\Laravel\Events\PromptsListChanged;
+use PhpMcp\Laravel\Events\ResourcesListChanged;
+use PhpMcp\Laravel\Events\ToolsListChanged;
+use PhpMcp\Laravel\Listeners\McpNotificationListener;
+use PhpMcp\Laravel\Transports\LaravelHttpTransport;
+use PhpMcp\Server\Model\Capabilities;
+use PhpMcp\Server\Registry;
 use PhpMcp\Server\Server;
-use Psr\Log\LoggerInterface;
-use Psr\SimpleCache\CacheInterface;
 
-class McpServiceProvider extends ServiceProvider
+class McpServiceProvider extends ServiceProvider implements DeferrableProvider
 {
     /**
      * The event listener mappings for the application.
@@ -41,60 +41,116 @@ class McpServiceProvider extends ServiceProvider
 
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/mcp.php', 'mcp');
+        $this->mergeConfigFrom(__DIR__ . '/../config/mcp.php', 'mcp');
 
-        $this->app->singleton(Server::class, function (Application $app) {
-            $server = Server::make()
-                ->withContainer($app)
-                ->withBasePath(base_path())
-                ->withScanDirectories($app['config']->get('mcp.discovery.directories', ['app/Mcp']));
+        $this->app->singleton(McpRegistrar::class, fn() => new McpRegistrar());
 
-            if (! $this->app->environment('production')) {
-                $server->discover();
-            }
+        $this->app->alias(McpRegistrar::class, 'mcp.registrar');
+    }
 
-            $registry = $server->getRegistry();
-
-            $registry->setToolsChangedNotifier(fn () => ToolsListChanged::dispatch());
-            $registry->setResourcesChangedNotifier(fn () => ResourcesListChanged::dispatch());
-            $registry->setPromptsChangedNotifier(fn () => PromptsListChanged::dispatch());
-
-            return $server;
-        });
-
-        $this->app->bind(ConfigurationRepositoryInterface::class, fn (Application $app) => new ConfigAdapter($app['config']));
-        $this->app->bind(LoggerInterface::class, fn (Application $app) => $app['log']->channel($app['config']->get('mcp.logging.channel')));
-        $this->app->bind(CacheInterface::class, fn (Application $app) => $app['cache']->store($app['config']->get('mcp.cache.store')));
+    /**
+     * Get the services provided by the provider.
+     *
+     * @return array<int, string>
+     */
+    public function provides(): array
+    {
+        return [Server::class, LaravelHttpTransport::class];
     }
 
     public function boot(): void
     {
+        $this->loadMcpDefinitions();
+        $this->buildServer();
         $this->bootConfig();
         $this->bootRoutes();
         $this->bootCommands();
+        $this->bootEventListeners();
+    }
+
+    protected function loadMcpDefinitions(): void
+    {
+        $definitionsPath = config('mcp.discovery.definitions_file', base_path('routes/mcp.php'));
+        if ($definitionsPath && file_exists($definitionsPath)) {
+            require $definitionsPath;
+        }
+    }
+
+    protected function buildServer(): void
+    {
+        $this->app->singleton(Server::class, function (Application $app) {
+            $serverName = config('mcp.server.name', config('app.name', 'Laravel') . ' MCP Server');
+            $serverVersion = config('mcp.server.version', '1.0.0');
+            $logger = $app['log']->channel(config('mcp.logging.channel'));
+            $cache = $app['cache']->store($app['config']->get('mcp.cache.store'));
+            $capabilities = Capabilities::forServer(
+                toolsEnabled: config('mcp.capabilities.tools.enabled', true),
+                toolsListChanged: config('mcp.capabilities.tools.listChanged', true),
+                resourcesEnabled: config('mcp.capabilities.resources.enabled', true),
+                resourcesSubscribe: config('mcp.capabilities.resources.subscribe', true),
+                resourcesListChanged: config('mcp.capabilities.resources.listChanged', true),
+                promptsEnabled: config('mcp.capabilities.prompts.enabled', true),
+                promptsListChanged: config('mcp.capabilities.prompts.listChanged', true),
+                loggingEnabled: config('mcp.capabilities.logging.enabled', true),
+                instructions: config('mcp.server.instructions')
+            );
+
+            $builder = Server::make()
+                ->withServerInfo($serverName, $serverVersion)
+                ->withLogger($logger)
+                ->withContainer($app)
+                ->withCache($cache, (int) config('mcp.cache.ttl', 3600))
+                ->withCapabilities($capabilities);
+
+            $registrar = $app->make(McpRegistrar::class);
+            $registrar->applyBlueprints($builder);
+
+            $server = $builder->build();
+
+            if (config('mcp.discovery.auto_discover', true)) {
+                $server->discover(
+                    basePath: config('mcp.discovery.base_path', base_path()),
+                    scanDirs: config('mcp.discovery.directories', ['app/Mcp']),
+                    excludeDirs: config('mcp.discovery.exclude_dirs', []),
+                    saveToCache: config('mcp.discovery.save_to_cache', true)
+                );
+            }
+
+            return $server;
+        });
+
+        $this->app->singleton(Registry::class, fn($app) => $app->make(Server::class)->getRegistry());
+
+        $this->app->alias(Server::class, 'mcp.server');
+        $this->app->alias(Registry::class, 'mcp.registry');
+
+        $this->app->singleton(LaravelHttpTransport::class, function (Application $app) {
+            $server = $app->make(Server::class);
+
+            return new LaravelHttpTransport($server->getClientStateManager());
+        });
     }
 
     protected function bootConfig(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->publishes([__DIR__.'/../config/mcp.php' => config_path('mcp.php')], 'mcp-config');
+            $this->publishes([__DIR__ . '/../config/mcp.php' => config_path('mcp.php')], 'mcp-config');
         }
     }
 
     protected function bootRoutes(): void
     {
-        $config = $this->app['config'];
-        if ($config->get('mcp.transports.http.enabled', true)) {
-            $prefix = $config->get('mcp.transports.http.prefix', 'mcp');
-            $middleware = $config->get('mcp.transports.http.middleware', ['web']);
-            $domain = $config->get('mcp.transports.http.domain');
+        if (config('mcp.transports.http_integrated.enabled', true)) {
+            $routePrefix = config('mcp.transports.http_integrated.route_prefix', 'mcp');
+            $middleware = config('mcp.transports.http_integrated.middleware', ['web']);
+            $domain = config('mcp.transports.http_integrated.domain');
 
             Route::group([
                 'domain' => $domain,
-                'prefix' => $prefix,
+                'prefix' => $routePrefix,
                 'middleware' => $middleware,
             ], function () {
-                $this->loadRoutesFrom(__DIR__.'/../routes/mcp.php');
+                $this->loadRoutesFrom(__DIR__ . '/../routes/mcp_http_integrated.php');
             });
         }
     }
@@ -108,5 +164,15 @@ class McpServiceProvider extends ServiceProvider
                 ListCommand::class,
             ]);
         }
+    }
+
+    protected function bootEventListeners(): void
+    {
+        $server = $this->app->make(Server::class);
+        $registry = $server->getRegistry();
+
+        $registry->setToolsChangedNotifier(ToolsListChanged::dispatch(...));
+        $registry->setResourcesChangedNotifier(ResourcesListChanged::dispatch(...));
+        $registry->setPromptsChangedNotifier(PromptsListChanged::dispatch(...));
     }
 }
