@@ -121,7 +121,8 @@ class McpController
                 }
 
                 static $keepAliveCounter = 0;
-                if (($keepAliveCounter++ % (15 / $pollInterval)) == 0) {
+                $keepAliveInterval = (int) round(15 / $pollInterval);
+                if (($keepAliveCounter++ % $keepAliveInterval) == 0) {
                     echo ": keep-alive\n\n";
                     $this->flushOutput();
                 }
