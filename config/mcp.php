@@ -44,8 +44,8 @@ return [
             '.git',
         ],
         'definitions_file' => base_path('routes/mcp.php'),
-        'auto_discover' => env('MCP_AUTO_DISCOVER', true),
-        'save_to_cache' => env('MCP_DISCOVERY_SAVE_TO_CACHE', true),
+        'auto_discover' => (bool) env('MCP_AUTO_DISCOVER', true),
+        'save_to_cache' => (bool) env('MCP_DISCOVERY_SAVE_TO_CACHE', true),
     ],
 
     /*
@@ -75,11 +75,11 @@ return [
     */
     'transports' => [
         'stdio' => [
-            'enabled' => env('MCP_STDIO_ENABLED', true),
+            'enabled' => (bool) env('MCP_STDIO_ENABLED', true),
         ],
 
         'http_dedicated' => [
-            'enabled' => env('MCP_HTTP_DEDICATED_ENABLED', true),
+            'enabled' => (bool) env('MCP_HTTP_DEDICATED_ENABLED', true),
             'host' => env('MCP_HTTP_DEDICATED_HOST', '127.0.0.1'),
             'port' => (int) env('MCP_HTTP_DEDICATED_PORT', 8090),
             'path_prefix' => env('MCP_HTTP_DEDICATED_PATH_PREFIX', 'mcp'),
@@ -87,7 +87,7 @@ return [
         ],
 
         'http_integrated' => [
-            'enabled' => env('MCP_HTTP_INTEGRATED_ENABLED', true),
+            'enabled' => (bool) env('MCP_HTTP_INTEGRATED_ENABLED', true),
             'route_prefix' => env('MCP_HTTP_INTEGRATED_ROUTE_PREFIX', 'mcp'),
             'middleware' => explode(',', env('MCP_HTTP_INTEGRATED_MIDDLEWARE', 'web')),
             'domain' => env('MCP_HTTP_INTEGRATED_DOMAIN'),
@@ -118,24 +118,24 @@ return [
     */
     'capabilities' => [
         'tools' => [
-            'enabled' => env('MCP_CAP_TOOLS_ENABLED', true),
-            'listChanged' => env('MCP_CAP_TOOLS_LIST_CHANGED', true),
+            'enabled' => (bool) env('MCP_CAP_TOOLS_ENABLED', true),
+            'listChanged' => (bool) env('MCP_CAP_TOOLS_LIST_CHANGED', true),
         ],
 
         'resources' => [
-            'enabled' => env('MCP_CAP_RESOURCES_ENABLED', true),
-            'subscribe' => env('MCP_CAP_RESOURCES_SUBSCRIBE', true),
-            'listChanged' => env('MCP_CAP_RESOURCES_LIST_CHANGED', true),
+            'enabled' => (bool) env('MCP_CAP_RESOURCES_ENABLED', true),
+            'subscribe' => (bool) env('MCP_CAP_RESOURCES_SUBSCRIBE', true),
+            'listChanged' => (bool) env('MCP_CAP_RESOURCES_LIST_CHANGED', true),
         ],
 
         'prompts' => [
-            'enabled' => env('MCP_CAP_PROMPTS_ENABLED', true),
-            'listChanged' => env('MCP_CAP_PROMPTS_LIST_CHANGED', true),
+            'enabled' => (bool) env('MCP_CAP_PROMPTS_ENABLED', true),
+            'listChanged' => (bool) env('MCP_CAP_PROMPTS_LIST_CHANGED', true),
         ],
 
         'logging' => [
-            'enabled' => env('MCP_CAP_LOGGING_ENABLED', true),
-            'setLevel' => env('MCP_CAP_LOGGING_SET_LEVEL', false),
+            'enabled' => (bool) env('MCP_CAP_LOGGING_ENABLED', true),
+            'setLevel' => (bool) env('MCP_CAP_LOGGING_SET_LEVEL', false),
         ],
     ],
 
