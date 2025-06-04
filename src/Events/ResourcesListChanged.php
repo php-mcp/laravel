@@ -1,6 +1,6 @@
 <?php
 
-namespace PhpMcp\Laravel\Server\Events;
+namespace PhpMcp\Laravel\Events;
 
 /**
  * Event dispatched when the list of available resources changes.

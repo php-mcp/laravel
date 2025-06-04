@@ -2,13 +2,10 @@
 
 declare(strict_types=1);
 
-namespace PhpMcp\Laravel\Server\Commands;
+namespace PhpMcp\Laravel\Commands;
 
 use Illuminate\Console\Command;
-use PhpMcp\Server\Registry;
 use PhpMcp\Server\Server;
-use Psr\Log\LoggerInterface;
-use Throwable;
 
 class DiscoverCommand extends Command
 {
@@ -17,7 +14,9 @@ class DiscoverCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'mcp:discover {--no-cache : Perform discovery but do not update the cache}';
+    protected $signature = 'mcp:discover 
+                            {--no-cache : Perform discovery but do not update the cache}
+                            {--force : Force discovery even if already run or cache seems fresh (in dev)}';
 
     /**
      * The console command description.
@@ -29,48 +28,52 @@ class DiscoverCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle(Server $server, Registry $registry, LoggerInterface $logger): int
+    public function handle(Server $server): int
     {
         $noCache = $this->option('no-cache');
+        $forceDiscovery = $this->option('force') ?? true;
 
         $this->info('Starting MCP element discovery...');
 
         if ($noCache) {
-            $this->warn('Performing discovery without updating the cache.');
+            $this->warn('Discovery results will NOT be saved to cache.');
         }
 
         try {
-            $server->discover(true);
-
-            $toolsCount = $registry->allTools()->count();
-            $resourcesCount = $registry->allResources()->count();
-            $templatesCount = $registry->allResourceTemplates()->count();
-            $promptsCount = $registry->allPrompts()->count();
-
-            $this->info('Discovery complete.');
-            $this->table(
-                ['Element Type', 'Count'],
-                [
-                    ['Tools', $toolsCount],
-                    ['Resources', $resourcesCount],
-                    ['Resource Templates', $templatesCount],
-                    ['Prompts', $promptsCount],
-                ]
+            $server->discover(
+                basePath: config('mcp.discovery.base_path', base_path()),
+                scanDirs: config('mcp.discovery.directories', ['app/Mcp']),
+                excludeDirs: config('mcp.discovery.exclude_dirs', []),
+                force: $forceDiscovery,
+                saveToCache: ! $noCache
             );
-
-            if (! $noCache) {
-                $this->info('Element cache updated.');
-            }
-
-            return Command::SUCCESS;
-        } catch (Throwable $e) {
-            $logger->error('MCP Discovery failed', ['exception' => $e]);
-            $this->error('Discovery failed: '.$e->getMessage());
-            if ($this->getOutput()->isVeryVerbose()) {
-                $this->line($e->getTraceAsString());
-            }
-
+        } catch (\Exception $e) {
+            $this->error('Discovery failed: ' . $e->getMessage());
             return Command::FAILURE;
         }
+
+        $registry = $server->getRegistry();
+
+        $toolsCount = $registry->allTools()->count();
+        $resourcesCount = $registry->allResources()->count();
+        $templatesCount = $registry->allResourceTemplates()->count();
+        $promptsCount = $registry->allPrompts()->count();
+
+        $this->info('Discovery complete.');
+        $this->table(
+            ['Element Type', 'Count'],
+            [
+                ['Tools', $toolsCount],
+                ['Resources', $resourcesCount],
+                ['Resource Templates', $templatesCount],
+                ['Prompts', $promptsCount],
+            ]
+        );
+
+        if (! $noCache && $registry->discoveryRanOrCached()) {
+            $this->info('MCP element definitions updated and cached.');
+        }
+
+        return Command::SUCCESS;
     }
 }

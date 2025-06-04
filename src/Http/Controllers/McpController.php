@@ -2,31 +2,31 @@
 
 declare(strict_types=1);
 
-namespace PhpMcp\Laravel\Server\Http\Controllers;
+namespace PhpMcp\Laravel\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use PhpMcp\Laravel\Transports\LaravelHttpTransport;
 use PhpMcp\Server\Server;
-use PhpMcp\Server\Transports\HttpTransportHandler;
-use Psr\Log\LoggerInterface;
+use PhpMcp\Server\State\ClientStateManager;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 class McpController
 {
-    private HttpTransportHandler $handler;
-
-    private LoggerInterface $logger;
+    private ClientStateManager $clientStateManager;
 
     /**
      * MCP Controller Constructor
      *
      * Inject dependencies resolved by the service container.
      */
-    public function __construct(Server $server)
+    public function __construct(protected Server $server, protected LaravelHttpTransport $transport)
     {
-        $this->handler = new HttpTransportHandler($server);
-        $this->logger = app(LoggerInterface::class);
+        $this->clientStateManager = $server->getClientStateManager();
+
+        $server->listen($this->transport, false);
     }
 
     /**
@@ -34,9 +34,8 @@ class McpController
      */
     public function handleMessage(Request $request): Response
     {
-        // Confirm request is JSON
         if (! $request->isJson()) {
-            $this->logger->warning('MCP POST request with invalid Content-Type');
+            Log::warning('MCP POST request with invalid Content-Type');
 
             return response()->json([
                 'jsonrpc' => '2.0',
@@ -47,24 +46,10 @@ class McpController
             ], 400);
         }
 
-        // Confirm request body is not empty
-        $content = $request->getContent();
-        if ($content === false || empty($content)) {
-            $this->logger->warning('MCP POST request with empty body');
-
-            return response()->json([
-                'jsonrpc' => '2.0',
-                'error' => [
-                    'code' => -32600,
-                    'message' => 'Invalid Request: Empty body',
-                ],
-            ], 400);
-        }
-
-        $clientId = $request->query('client_id');
+        $clientId = $request->query('clientId');
 
         if (! $clientId || ! is_string($clientId)) {
-            $this->logger->error('MCP: Missing or invalid clientId');
+            Log::error('MCP: Missing or invalid clientId');
 
             return response()->json([
                 'jsonrpc' => '2.0',
@@ -75,7 +60,21 @@ class McpController
             ], 400);
         }
 
-        $this->handler->handleInput($content, $clientId);
+        // Confirm request body is not empty
+        $content = $request->getContent();
+        if ($content === false || empty($content)) {
+            Log::warning('MCP POST request with empty body');
+
+            return response()->json([
+                'jsonrpc' => '2.0',
+                'error' => [
+                    'code' => -32600,
+                    'message' => 'Invalid Request: Empty body',
+                ],
+            ], 400);
+        }
+
+        $this->transport->emit('message', [$content, $clientId]);
 
         return response()->json([
             'jsonrpc' => '2.0',
@@ -91,38 +90,80 @@ class McpController
     {
         $clientId = $request->hasSession() ? $request->session()->getId() : Str::uuid()->toString();
 
-        if (! $clientId) {
-            $this->logger->error('MCP: SSE connection failed - Could not determine Client ID.');
+        $this->transport->emit('client_connected', [$clientId]);
 
-            return response()->json([
-                'jsonrpc' => '2.0',
-                'error' => [
-                    'code' => -32600,
-                    'message' => 'Could not determine Client ID',
-                ],
-            ], 400);
+        $pollInterval = (int) config('mcp.transports.http_integrated.sse_poll_interval', 1);
+        if ($pollInterval < 1) {
+            $pollInterval = 1;
         }
 
-        $this->logger->info('MCP: SSE connection opening', ['client_id' => $clientId]);
+        return response()->stream(function () use ($clientId, $pollInterval) {
+            @set_time_limit(0);
 
-        set_time_limit(0);
-
-        return response()->stream(function () use ($clientId) {
             try {
-                $postEndpointUri = route('mcp.message', ['client_id' => $clientId], false);
+                $postEndpointUri = route('mcp.message', ['clientId' => $clientId], false);
 
-                $this->handler->handleSseConnection($clientId, $postEndpointUri);
+                $this->sendSseEvent('endpoint', $postEndpointUri, "mcp-endpoint-{$clientId}");
             } catch (Throwable $e) {
-                $this->logger->error('MCP: SSE stream loop terminated', ['client_id' => $clientId, 'reason' => $e->getMessage()]);
-            } finally {
-                $this->handler->cleanupClient($clientId);
-                $this->logger->info('MCP: SSE connection closed and client cleaned up', ['client_id' => $clientId]);
+                Log::error('MCP: SSE stream loop terminated', ['client_id' => $clientId, 'reason' => $e->getMessage()]);
+
+                return;
             }
+
+            while (true) {
+                if (connection_aborted()) {
+                    break;
+                }
+
+                $messages = $this->clientStateManager->getQueuedMessages($clientId);
+                foreach ($messages as $message) {
+                    $this->sendSseEvent('message', rtrim($message, "\n"));
+                }
+
+                static $keepAliveCounter = 0;
+                if (($keepAliveCounter++ % (15 / $pollInterval)) == 0) {
+                    echo ": keep-alive\n\n";
+                    $this->flushOutput();
+                }
+
+                usleep($pollInterval * 1000000);
+            }
+
+            $this->transport->emit('client_disconnected', [$clientId, 'Laravel SSE stream shutdown']);
+            $this->server->endListen($this->transport);
         }, headers: [
             'Content-Type' => 'text/event-stream',
             'Cache-Control' => 'no-cache',
             'Connection' => 'keep-alive',
-            'X-Accel-Buffering' => 'no', // Prevent buffering by proxies like nginx
+            'X-Accel-Buffering' => 'no',
+            'Access-Control-Allow-Origin' => '*', // TODO: Make this configurable
         ]);
+    }
+
+    private function sendSseEvent(string $event, string $data, ?string $id = null): void
+    {
+        if (connection_aborted()) {
+            return;
+        }
+
+        echo "event: {$event}\n";
+        if ($id !== null) {
+            echo "id: {$id}\n";
+        }
+
+        foreach (explode("\n", $data) as $line) {
+            echo "data: {$line}\n";
+        }
+
+        echo "\n";
+        $this->flushOutput();
+    }
+
+    private function flushOutput(): void
+    {
+        if (function_exists('ob_flush')) {
+            @ob_flush();
+        }
+        @flush();
     }
 }

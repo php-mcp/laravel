@@ -2,15 +2,16 @@
 
 declare(strict_types=1);
 
-namespace PhpMcp\Laravel\Server\Commands;
+namespace PhpMcp\Laravel\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use PhpMcp\Server\Definitions\PromptDefinition;
 use PhpMcp\Server\Definitions\ResourceDefinition;
 use PhpMcp\Server\Definitions\ResourceTemplateDefinition;
 use PhpMcp\Server\Definitions\ToolDefinition;
-use PhpMcp\Server\Registry;
+use PhpMcp\Server\Server;
 
 class ListCommand extends Command
 {
@@ -19,7 +20,9 @@ class ListCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'mcp:list {type? : The type of element to list (tools, resources, prompts, templates)} {--json : Output the list as JSON}';
+    protected $signature = 'mcp:list 
+                            {type? : The type of element to list (tools, resources, prompts, templates)} 
+                            {--json : Output the list as JSON}';
 
     /**
      * The console command description.
@@ -31,9 +34,16 @@ class ListCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle(Registry $registry): int
+    public function handle(Server $server): int
     {
-        $registry->loadElementsFromCache(); // Ensure elements are loaded
+        $registry = $server->getRegistry();
+
+        if (! $registry->hasElements() && ! $registry->discoveryRanOrCached()) {
+            $this->comment('No MCP elements are manually registered, and discovery has not run (or cache is empty).');
+            $this->comment('Run `php artisan mcp:discover` or ensure auto-discovery is enabled in dev.');
+        } elseif (! $registry->hasElements() && $registry->discoveryRanOrCached()) {
+            $this->comment('Discovery/cache load ran, but no MCP elements were found.');
+        }
 
         $type = $this->argument('type');
         $outputJson = $this->option('json');
@@ -41,7 +51,7 @@ class ListCommand extends Command
         $validTypes = ['tools', 'resources', 'prompts', 'templates'];
 
         if ($type && ! in_array($type, $validTypes)) {
-            $this->error("Invalid element type '{$type}'. Valid types are: ".implode(', ', $validTypes));
+            $this->error("Invalid element type '{$type}'. Valid types are: " . implode(', ', $validTypes));
 
             return Command::INVALID;
         }
@@ -82,44 +92,35 @@ class ListCommand extends Command
     private function displayTable(string $type, Collection $collection): void
     {
         if ($collection->isEmpty()) {
-            $this->info(ucfirst($type).': None found.');
+            $this->info(ucfirst($type) . ': None found.');
 
             return;
         }
 
-        $this->info(ucfirst($type).':');
+        $this->info(ucfirst($type) . ':');
 
         $data = match ($type) {
-            'tools' => $collection->map(fn (ToolDefinition $def) => [
-                'name' => $def->getName(),
-                'description' => $def->getDescription(),
-                'class' => $def->getClassName(),
-                'method' => $def->getMethodName(),
-                // 'inputSchema' => json_encode($def->getInputSchema(), JSON_UNESCAPED_SLASHES),
+            'tools' => $collection->map(fn(ToolDefinition $def) => [
+                'Name' => $def->getName(),
+                'Description' => Str::limit($def->getDescription() ?? '-', 60),
+                'Handler' => $def->getClassName() . '::' . $def->getMethodName(),
             ])->all(),
-            'resources' => $collection->map(fn (ResourceDefinition $def) => [
-                'uri' => $def->getUri(),
-                'name' => $def->getName(),
-                'description' => $def->getDescription(),
-                'mimeType' => $def->getMimeType(),
-                'class' => $def->getClassName(),
-                'method' => $def->getMethodName(),
+            'resources' => $collection->map(fn(ResourceDefinition $def) => [
+                'URI' => $def->getUri(),
+                'Name' => $def->getName(),
+                'MIME' => $def->getMimeType() ?? '-',
+                'Handler' => $def->getClassName() . '::' . $def->getMethodName(),
             ])->all(),
-            'prompts' => $collection->map(fn (PromptDefinition $def) => [
-                'name' => $def->getName(),
-                'description' => $def->getDescription(),
-                'class' => $def->getClassName(),
-                'method' => $def->getMethodName(),
-                // 'inputSchema' => json_encode($def->getInputSchema(), JSON_UNESCAPED_SLASHES),
+            'prompts' => $collection->map(fn(PromptDefinition $def) => [
+                'Name' => $def->getName(),
+                'Description' => Str::limit($def->getDescription() ?? '-', 60),
+                'Handler' => $def->getClassName() . '::' . $def->getMethodName(),
             ])->all(),
-            'templates' => $collection->map(fn (ResourceTemplateDefinition $def) => [
-                'uriTemplate' => $def->getUriTemplate(),
-                'name' => $def->getName(),
-                'description' => $def->getDescription(),
-                'mimeType' => $def->getMimeType(),
-                'class' => $def->getClassName(),
-                'method' => $def->getMethodName(),
-                // 'inputSchema' => json_encode($def->getInputSchema(), JSON_UNESCAPED_SLASHES),
+            'templates' => $collection->map(fn(ResourceTemplateDefinition $def) => [
+                'URI Template' => $def->getUriTemplate(),
+                'Name' => $def->getName(),
+                'MIME' => $def->getMimeType() ?? '-',
+                'Handler' => $def->getClassName() . '::' . $def->getMethodName(),
             ])->all(),
             default => [],
         };
@@ -135,7 +136,6 @@ class ListCommand extends Command
 
     private function formatCollectionForJson(Collection $collection): array
     {
-        // Convert definitions to arrays for JSON output
-        return $collection->map(fn ($item) => $item instanceof \JsonSerializable ? $item->jsonSerialize() : (array) $item)->values()->all();
+        return $collection->map(fn($item) => $item instanceof \JsonSerializable ? $item->jsonSerialize() : (array) $item)->values()->all();
     }
 }

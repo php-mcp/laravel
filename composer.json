@@ -13,33 +13,35 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Kyrian",
-            "email": "okeowoaderukyrian@gmail.com",
+            "name": "Kyrian Obikwelu",
+            "email": "koshnawaza@gmail.com",
             "role": "Developer"
         }
     ],
     "require": {
         "php": "^8.1",
         "laravel/framework": "^9.46 || ^10.34 || ^11.29 || ^12.0",
-        "php-mcp/server": "^1.1.0"
+        "php-mcp/server": "^2.2"
     },
     "require-dev": {
         "laravel/pint": "^1.13",
+        "mockery/mockery": "^1.6",
+        "orchestra/pest-plugin-testbench": "^2.1",
         "orchestra/testbench": "^8.0 || ^9.0",
         "pestphp/pest": "^2.0",
+        "pestphp/pest-plugin-drift": "^2.6",
         "pestphp/pest-plugin-laravel": "^2.0",
-        "mockery/mockery": "^1.6",
         "phpunit/phpunit": "^10.0 || ^11.0",
         "react/http": "^1.11"
     },
     "autoload": {
         "psr-4": {
-            "PhpMcp\\Laravel\\Server\\": "src/"
+            "PhpMcp\\Laravel\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "PhpMcp\\Laravel\\Server\\Tests\\": "tests/"
+            "PhpMcp\\Laravel\\Tests\\": "tests/"
         }
     },
     "scripts": {
@@ -56,7 +58,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "PhpMcp\\Laravel\\Server\\McpServiceProvider"
+                "PhpMcp\\Laravel\\McpServiceProvider"
             ]
         }
     },

@@ -4,249 +4,298 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/php-mcp/laravel.svg?style=flat-square)](https://packagist.org/packages/php-mcp/laravel)
 [![License](https://img.shields.io/packagist/l/php-mcp/laravel.svg?style=flat-square)](LICENSE)
 
-Integrates the core [`php-mcp/server`](https://github.com/php-mcp/server) package seamlessly into your Laravel application, allowing you to expose parts of your application as **Model Context Protocol (MCP)** tools, resources, and prompts using simple PHP attributes.
+**Seamlessly integrate the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) into your Laravel applications.**
 
-This package handles:
+This package is the official Laravel wrapper for the powerful [`php-mcp/server`](https://github.com/php-mcp/server) library. It allows you to effortlessly expose parts of your Laravel application as MCP **Tools**, **Resources**, and **Prompts**, enabling standardized communication with AI assistants like Anthropic's Claude, Cursor IDE, and others.
 
-*   Automatically wiring Laravel's Cache, Logger, and Container for use by the MCP server.
-*   Providing configuration options via `config/mcp.php`.
-*   Registering Artisan commands (`mcp:serve`, `mcp:discover`, `mcp:list`).
-*   Setting up HTTP+SSE transport routes and controllers.
-*   Integrating with Laravel's event system for dynamic updates.
+**Key Features:**
+
+*   **Effortless Integration:** Designed from the ground up for Laravel, leveraging its service container, configuration, caching, logging, and Artisan console.
+*   **Fluent Element Definition:** Define MCP elements programmatically with a clean, Laravely API using the `Mcp` Facade (e.g., `Mcp::tool(...)->description(...)`).
+*   **Attribute-Based Discovery:** Alternatively, use PHP 8 attributes (`#[McpTool]`, etc.) on your classes and methods, then run a simple Artisan command to discover and cache them.
+*   **Flexible Transports:**
+    *   **Integrated HTTP+SSE:** Serve MCP requests directly through your Laravel application's routes, ideal for many setups.
+    *   **Dedicated HTTP+SSE Server:** Launch a high-performance, standalone ReactPHP-based HTTP server via an Artisan command for demanding scenarios.
+    *   **STDIO:** Run an MCP server over standard input/output, perfect for CLI-driven clients.
+*   **Robust Configuration:** Manage all aspects of your MCP server via the `config/mcp.php` file.
+*   **Artisan Commands:** Includes commands for serving, discovering elements, and listing registered components.
+*   **Event-Driven Updates:** Integrates with Laravel's event system to notify clients of dynamic changes to your MCP elements.
+
+This package utilizes `php-mcp/server` v2.1.0+ which supports the `2024-11-05` version of the Model Context Protocol.
 
 ## Requirements
 
 *   PHP >= 8.1
-*   Laravel >= 10.0 (May work with older versions, but tested with 10+)
-*   [`php-mcp/server`](https://github.com/php-mcp/server) (Installed as a dependency)
+*   Laravel >= 10.0
+*   [`php-mcp/server`](https://github.com/php-mcp/server) ^2.1.0 (automatically installed)
 
 ## Installation
 
-1.  Require the package via Composer:
+1.  **Require the Package:**
     ```bash
     composer require php-mcp/laravel
     ```
-2.  The `McpServiceProvider` will be automatically discovered and registered by Laravel.
-3.  Publish the configuration file:
+
+2.  **Publish Configuration:**
     ```bash
     php artisan vendor:publish --provider="PhpMcp\Laravel\Server\McpServiceProvider" --tag="mcp-config"
     ```
-    This will create a `config/mcp.php` file where you can customize the server's behavior.
 
 ## Configuration
 
-The primary way to configure the MCP server in Laravel is through the `config/mcp.php` file.
+All MCP server settings are managed in `config/mcp.php`. Here are the key sections:
 
-*   **`server`**: Basic server information (name, version).
-*   **`discovery`**: 
-    *   `base_path`: The root path for discovery (defaults to `base_path()`).
-    *   `directories`: An array of paths *relative* to `base_path` to scan for MCP attributes (defaults to `['app/Mcp']`). Add the directories where you define your MCP element classes here.
-*   **`cache`**:
-    *   `store`: The Laravel cache store to use (e.g., `file`, `redis`). Uses the default store if `null`.
-    *   `prefix`: The cache prefix to use for caching internally.
-    *   `ttl`: Default cache TTL in seconds for discovered elements and transport state.
-*   **`transports`**:
-    *   **`http`**: Configures the built-in HTTP+SSE transport.
-        *   `enabled`: Set to `false` to disable the HTTP routes.
-        *   `prefix`: URL prefix for the MCP routes (defaults to `mcp`, resulting in `/mcp` and `/mcp/sse`).
-        *   `middleware`: Array of middleware groups to apply. Defaults to `['web']`. **Important:** The `web` middleware group (or another group that enables sessions) is generally required for the HTTP transport to correctly identify clients using session IDs.
-        *   `domain`: Optional route domain.
-    *   **`stdio`**: Configures the stdio transport.
-        *   `enabled`: Set to `false` to disable the `mcp:serve` command.
-*   **`protocol_versions`**: Array of supported MCP protocol versions (only `'2024-11-05'` currently).
-*   **`pagination_limit`**: Default number of items returned by list methods.
-*   **`capabilities`**: Enable/disable specific MCP features (tools, resources, prompts, logging) and list change notifications.
-*   **`logging`**:
-    *   `channel`: Specific Laravel log channel to use. Defaults to the application's default channel.
-    *   `level`: Default log level if not provided by the core server.
+### Server Information
+*   **`server`**: Basic server identity settings
+    *   `name`: Your MCP server's name (default: 'Laravel MCP')
+    *   `version`: Server version number
+    *   `instructions`: Optional initialization instructions for clients
 
-## Usage
+### Discovery Settings
+*   **`discovery`**: Controls how MCP elements are discovered
+    *   `base_path`: Root directory for scanning (defaults to `base_path()`)
+    *   `directories`: Paths to scan for MCP attributes (default: `['app/Mcp']`)
+    *   `exclude_dirs`: Directories to skip during scans (e.g., 'vendor', 'tests', etc.)
+    *   `definitions_file`: Path to manual element definitions (default: `routes/mcp.php`)
+    *   `auto_discover`: Enable automatic discovery in development (default: `true`)
+    *   `save_to_cache`: Cache discovery results (default: `true`)
 
-### Defining MCP Elements
+### Transport Configuration
+*   **`transports`**: Available communication methods
+    *   **`stdio`**: CLI-based transport
+        *   `enabled`: Enable the `mcp:serve` command
+    *   **`http_dedicated`**: Standalone HTTP server
+        *   `enabled`, `host`, `port`, `path_prefix` settings
+    *   **`http_integrated`**: Laravel route-based server
+        *   `enabled`: Serve through Laravel routes
+        *   `prefix`: URL prefix (default: 'mcp')
+        *   `middleware`: Applied middleware (default: 'web')
 
-Define your MCP Tools, Resources, and Prompts by decorating methods **or invokable classes** with attributes from the `php-mcp/server` package (`#[McpTool]`, `#[McpResource]`, `#[McpPrompt]`, `#[McpResourceTemplate]`).
+### Cache & Performance
+*   **`cache`**: Caching configuration
+    *   `store`: Laravel cache store to use
+    *   `ttl`: Cache lifetime in seconds
+*   **`pagination_limit`**: Maximum items returned in list operations
 
-Place these classes in a directory included in the `discovery.directories` config array (e.g., `app/Mcp/MyTools.php`).
+### Feature Control
+*   **`capabilities`**: Toggle MCP features
+    *   Enable/disable tools, resources, prompts
+    *   Control subscriptions and change notifications
+*   **`logging`**: Server logging configuration
+    *   `channel`: Laravel log channel
+    *   `level`: Default log level
 
-**Example (`app/Mcp/MyTools.php`):**
+Review the published `config/mcp.php` file for detailed documentation of all available options and their descriptions.
+
+## Defining MCP Elements
+
+PHP MCP Laravel provides two approaches to define your MCP elements: manual registration using a fluent API or attribute-based discovery.
+
+### Manual Registration
+
+The recommended approach is using the fluent `Mcp` facade to manually register your elements in `routes/mcp.php` (this path can be changed in config/mcp.php via the discovery.definitions_file key):
+
 ```php
-<?php
+// routes/mcp.php
 
+use App\Mcp\MyLaravelTools;
+use App\Mcp\TopicSummarizer;
+use PhpMcp\Laravel\Server\Facades\Mcp;
+
+Mcp::tool('laravel_adder', [MyLaravelTools::class, 'add'])
+    ->description('Adds two numbers using Laravel.');
+
+Mcp::resource('config://app/name', [MyLaravelTools::class, 'getAppName'])
+    ->name('laravel_app_name')
+    ->mimeType('text/plain');
+
+Mcp::prompt('topic_summarizer', TopicSummarizer::class);
+
+Mcp::resourceTemplate('user://{userId}/profile', [MyLaravelTools::class, 'getUserProfile'])
+    ->mimeType('application/json');
+```
+
+The package automatically resolves handlers through Laravel's service container, allowing you to inject dependencies through constructor injection. Each registration method accepts either an invokable class or a `[class, method]` array.
+
+The fluent methods like `description()`, `name()`, and `mimeType()` are optional. When omitted, the package intelligently infers these values from your handler's method signatures, return types, and DocBlocks. Use these methods only when you need to override the automatically generated metadata.
+
+Manually registered elements are always available regardless of cache status and take precedence over discovered elements with the same identifier.
+
+### Attribute-Based Discovery
+
+As an alternative, you can use PHP 8 attributes to mark your methods or invokable classes as MCP elements:
+
+```php
 namespace App\Mcp;
 
-use Illuminate\Support\Facades\Config;
-use PhpMcp\Server\Attributes\McpResource;
 use PhpMcp\Server\Attributes\McpTool;
-use Psr\Log\LoggerInterface;
+use PhpMcp\Server\Attributes\McpResource;
 
-class MyTools
+class DiscoveredElements
 {
-    public function __construct(private LoggerInterface $logger) {}
-
-    #[McpResource(uri: 'laravel://config/app.name', mimeType: 'text/plain')]
-    public function getAppName(): string
+    #[McpTool(name: 'echo_discovered')]
+    public function echoMessage(string $message): string
     {
-        return Config::get('app.name', 'Laravel');
+        return "Discovered echo: {$message}";
     }
-
-    #[McpTool]
-    public function add(int $a, int $b): int
+    
+    #[McpResource(uri: 'status://server/health', mimeType: 'application/json')]
+    public function getServerHealth(): array
     {
-        $this->logger->info('Adding numbers via MCP');
-        return $a + $b;
+        return ['status' => 'healthy', 'uptime' => 123];
     }
 }
 ```
 
-*   **Dependency Injection:** Your classes' constructors (or invokable classes) will be resolved using Laravel's service container, so you can inject any application dependencies (like the `LoggerInterface` above).
-*   **Attribute Usage:** Refer to the [`php-mcp/server` README](https://github.com/php-mcp/server/blob/main/README.md#attributes-for-discovery) for detailed information on defining elements (both on methods and invokable classes) and formatting return values.
+In development environments with `auto_discover` enabled in your config, these elements are automatically discovered when needed. For production or to manually trigger discovery, run:
 
-### Automatic Discovery (Development) vs. Manual Discovery (Production)
+```bash
+php artisan mcp:discover
+```
 
-The server needs to discover your annotated elements before clients can use them.
+This command scans the configured directories, registers the discovered elements, and caches the results for improved performance. Use the `--no-cache` flag to skip caching or `--force` to perform a fresh scan regardless of cache status.
 
-*   **Development:** In non-production environments (e.g., `APP_ENV=local`), the server will **automatically discover** elements the first time the MCP server is needed (like on the first relevant HTTP request or Artisan command). You generally **do not** need to run the command manually during development after adding or changing elements.
+See the [`php-mcp/server` documentation](https://github.com/php-mcp/server?tab=readme-ov-file#attribute-details--return-formatting) for detailed information on attribute parameters and return value formatting.
 
-*   **Production:** For performance reasons, automatic discovery is **disabled** in production environments (`APP_ENV=production`). You **must run the discovery command manually** as part of your deployment process:
+## Running the MCP Server
 
-    ```bash
-    php artisan mcp:discover
-    ```
+PHP MCP Laravel offers three transport options to serve your MCP elements.
 
-    This command scans the configured directories and caches the found elements using the configured Laravel cache store. Running it during deployment ensures your production environment uses the pre-discovered, cached elements for optimal performance.
+### Integrated HTTP+SSE via Laravel Routes
 
-    *(You can still run `mcp:discover` manually in development if you wish, for example, to pre-populate the cache.)*
+The most convenient option for getting started is serving MCP directly through your Laravel application's routes:
 
-### Running the Server
+```php
+// Client connects to: http://your-app.test/mcp/sse
+// No additional processes needed
+```
 
-You can expose your MCP server using either the stdio or HTTP+SSE transport.
+**Configuration**:
+- Ensure `mcp.transports.http_integrated.enabled` is `true` in your config
+- The package registers routes at `/mcp/sse` (GET) and `/mcp/message` (POST) by default
+- You can customize the prefix, middleware, and domain in `config/mcp.php`
 
-**Stdio Transport:**
+**CSRF Protection**: You must exclude the MCP message endpoint from CSRF verification:
 
-*   Configure your MCP client (Cursor, Claude Desktop) to connect via command. **Important:** Ensure you provide the **full path** to your project's `artisan` file.
+For Laravel 11+:
+```php
+// bootstrap/app.php
+->withMiddleware(function (Middleware $middleware) {
+    $middleware->validateCsrfTokens(except: [
+        config('mcp.transports.http_integrated.route_prefix') . '/message',
+    ]);
+})
+```
 
-    *Example Client Config (e.g., `.cursor/mcp.json`):*
-    ```json
-    {
-        "mcpServers": {
-            "my-laravel-mcp": {
-                "command": "php",
-                "args": [
-                    "/full/path/to/your/laravel/project/artisan", 
-                    "mcp:serve"
-                ],
-            }
+For Laravel 10 and below:
+```php
+// app/Http/Middleware/VerifyCsrfToken.php
+protected $except = [
+    'mcp/message', // Adjust if you changed the route prefix
+];
+```
+
+**Server Environment Considerations**:
+Standard synchronous servers like PHP's built-in server or basic PHP-FPM setups can struggle with SSE connections. For eg, a single PHP-FPM worker will be tied up for each active SSE connection. For production, consider using Laravel Octane with Swoole/RoadRunner or properly configured Nginx with sufficient PHP-FPM workers.
+
+### Dedicated HTTP+SSE Server (Recommended)
+
+For production environments or high-traffic applications, the dedicated HTTP server provides better performance and isolation:
+
+```bash
+php artisan mcp:serve --transport=http
+```
+
+This launches a standalone ReactPHP-based HTTP server specifically for MCP traffic:
+
+**Configuration**:
+- Ensure `mcp.transports.http_dedicated.enabled` is `true` in your config
+- Default server listens on `127.0.0.1:8090` with path prefix `/mcp`
+- Configure through any of these methods:
+  - Environment variables: `MCP_HTTP_DEDICATED_HOST`, `MCP_HTTP_DEDICATED_PORT`, `MCP_HTTP_DEDICATED_PATH_PREFIX`
+  - Edit values directly in `config/mcp.php`
+  - Override at runtime: `--host=0.0.0.0 --port=8091 --path-prefix=custom_mcp`
+
+This is a blocking, long-running process that should be managed with Supervisor, systemd, or Docker in production environments.
+
+### STDIO Transport for Direct Client Integration
+
+Ideal for Cursor IDE and other MCP clients that directly launch server processes:
+
+```bash
+php artisan mcp:serve
+# or explicitly:
+php artisan mcp:serve --transport=stdio
+```
+
+**Client Configuration**:
+Configure your MCP client to execute this command directly. For example, in Cursor:
+
+```json
+// .cursor/mcp.json
+{
+    "mcpServers": {
+        "my-laravel-stdio": {
+            "command": "php",
+            "args": [
+                "/full/path/to/your/laravel/project/artisan",
+                "mcp:serve"
+            ]
         }
     }
-    ```
-    *(Replace `/full/path/to/...` with the correct absolute paths)*
+}
+```
 
-**HTTP+SSE Transport:**
+**Important**: When using STDIO transport, your handler code must not write to STDOUT using echo, print, or similar functions. Use Laravel's logger or STDERR for any debugging output.
 
-*   **Enable:** Ensure `transports.http.enabled` is `true` in `config/mcp.php`.
-*   **Routes:** The package automatically registers two routes (by default `/mcp/sse` [GET] and `/mcp/message` [POST]) using the configured prefix and middleware (`web` by default).
-*   
-*   **Web Server Environment (CRITICAL):** 
-    *   The built-in `php artisan serve` development server **cannot reliably handle** the concurrent nature of SSE (long-running GET request) and subsequent POST requests from the MCP client. This is because it runs as a single PHP process. You will likely encounter hangs or requests not being processed.
-    *   For the HTTP+SSE transport to function correctly, you **must** run your Laravel application using a web server setup capable of handling concurrent requests properly:
-        *   **Nginx + PHP-FPM** or **Apache + PHP-FPM** (Recommended for typical deployments): Ensure FPM is configured to handle multiple worker processes.
-        *   **Laravel Octane** (with Swoole or RoadRunner): Optimized for high concurrency and suitable for this use case.
-        *   Other async runtimes capable of handling concurrent I/O.
-    *   You also need to ensure your web server (Nginx/Apache) and PHP-FPM configurations allow for long-running requests (`set_time_limit(0)` is handled by the controller, but server/FPM timeouts might interfere) and do *not* buffer the `text/event-stream` response (e.g., `X-Accel-Buffering: no` for Nginx).
-*   
-*   **Middleware:** Make sure the middleware applied (usually `web` in `config/mcp.php`) correctly handles sessions or provides another way to consistently identify the client across requests if you modify the default `McpController` behaviour.
-*   
-*   **CSRF Protection Exclusion (Important!):** The default `web` middleware group includes CSRF protection. Since MCP clients do not send CSRF tokens, you **must** exclude the MCP POST route from CSRF verification to prevent `419` errors. 
-    *   The specific URI to exclude depends on the `prefix` configured in `config/mcp.php`. By default, the prefix is `mcp`, so you should exclude `mcp` or `mcp/*`.
-    *   **Laravel 10 and below:** Add the pattern to the `$except` array in `app/Http/Middleware/VerifyCsrfToken.php`:
-        ```php
-        // app/Http/Middleware/VerifyCsrfToken.php
-        protected $except = [
-            // ... other routes
-            'mcp', // Or config('mcp.transports.http.prefix', 'mcp').'/*'
-        ];
-        ```
-    *   **Laravel 11+:** Add the pattern within the `bootstrap/app.php` file's `withMiddleware` call:
-        ```php
-        // bootstrap/app.php
-        ->withMiddleware(function (Middleware $middleware) {
-            $mcpPrefix = config('mcp.transports.http.prefix', 'mcp');
-            $middleware->validateCsrfTokens(except: [
-                $mcpPrefix, // Or $mcpPrefix.'/*'
-                // ... other routes
-            ]);
-        })
-        ```
-*   **Client Configuration:** Configure your MCP client to connect via URL, using the **SSE endpoint URL**.
+## Listing Registered Elements
 
-    *Example Client Config:*
-    ```json
-    {
-        "mcpServers": {
-            "my-laravel-mcp-http": {
-                "url": "http://your-laravel-app.test/mcp/sse" // Adjust URL as needed
-            }
-        }
-    }
-    ```
-    The server will automatically inform the client about the correct POST endpoint URL (including a unique `?clientId=...` query parameter) via the initial `endpoint` event sent over the SSE connection.
+To see which MCP elements your server has registered (both manual and discovered/cached):
 
-### Other Commands
+```bash
+php artisan mcp:list
+# Specific types:
+php artisan mcp:list tools
+php artisan mcp:list resources
+# JSON output:
+php artisan mcp:list --json
+```
 
-*   **List Elements:** View the discovered MCP elements.
-    ```bash
-    php artisan mcp:list
-    # Or list specific types:
-    php artisan mcp:list tools
-    php artisan mcp:list resources
-    php artisan mcp:list prompts
-    php artisan mcp:list templates
-    # Output as JSON:
-    php artisan mcp:list --json 
-    ```
+## Dynamic Updates (Events)
 
-### Dynamic Updates (Notifications)
+If your available MCP elements or resource content change while the server is running, you can notify connected clients (most relevant for HTTP transports).
 
-If the list of available tools, resources, or prompts changes while the server is running, or if a specific resource's content is updated, you can notify connected clients (primarily useful for HTTP+SSE).
-
-*   **List Changes:** Dispatch the corresponding event from anywhere in your Laravel application:
+*   **List Changes (Tools, Resources, Prompts):**
+    Dispatch the corresponding Laravel event. The package includes listeners to send the appropriate MCP notification.
     ```php
     use PhpMcp\Laravel\Server\Events\ToolsListChanged;
     use PhpMcp\Laravel\Server\Events\ResourcesListChanged;
     use PhpMcp\Laravel\Server\Events\PromptsListChanged;
 
-    // When tools have changed:
     ToolsListChanged::dispatch();
-
-    // When resources have changed:
-    ResourcesListChanged::dispatch();
-
-    // When prompts have changed:
-    PromptsListChanged::dispatch();
+    // ResourcesListChanged::dispatch();
+    // PromptsListChanged::dispatch();
     ```
-    The service provider includes listeners that automatically send the appropriate `*ListChanged` notifications to clients.
 
-*   **Specific Resource Content Change:** Inject or resolve the `PhpMcp\Server\Registry` and call `notifyResourceChanged`:
+*   **Specific Resource Content Update:**
+    Dispatch the `PhpMcp\Laravel\Server\Events\ResourceUpdated` event with the URI of the changed resource.
     ```php
-    use PhpMcp\Server\Registry;
+    use PhpMcp\Laravel\Server\Events\ResourceUpdated;
 
-    public function updateMyResource(Registry $registry, string $resourceUri)
-    {
-        // ... update the resource data ...
-
-        $registry->notifyResourceChanged($resourceUri);
-    }
+    $resourceUri = 'file:///path/to/updated_file.txt';
+    // ... your logic that updates the resource ...
+    ResourceUpdated::dispatch($resourceUri);
     ```
-    This will trigger a `resources/didChange` notification for clients subscribed to that specific URI.
+    The `McpNotificationListener` will handle sending the `notifications/resource/updated` MCP notification to clients subscribed to that URI.
+
+## Testing
+
+For your application tests, you can mock the `Mcp` facade or specific MCP handlers as needed. When testing MCP functionality itself, consider integration tests that make HTTP requests to your integrated MCP endpoints (if used) or command tests for Artisan commands.
 
 ## Contributing
 
-Please see CONTRIBUTING.md for details.
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) in the main [`php-mcp/server`](https://github.com/php-mcp/server) repository for general contribution guidelines. For issues or PRs specific to this Laravel package, please use this repository's issue tracker.
 
 ## License
 
-The MIT License (MIT). Please see [License File](LICENSE) for more information.
-
-## Support & Feedback
-
-Please open an issue on the [GitHub repository](https://github.com/php-mcp/laravel) for bugs, questions, or feedback. 
+The MIT License (MIT). See [LICENSE](LICENSE).

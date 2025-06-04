@@ -1,0 +1,1 @@
+<?php // Test MCP definitions
