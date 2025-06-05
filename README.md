@@ -6,7 +6,7 @@
 
 **Seamlessly integrate the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) into your Laravel applications.**
 
-This package is the official Laravel wrapper for the powerful [`php-mcp/server`](https://github.com/php-mcp/server) library. It allows you to effortlessly expose parts of your Laravel application as MCP **Tools**, **Resources**, and **Prompts**, enabling standardized communication with AI assistants like Anthropic's Claude, Cursor IDE, and others.
+This package is a Laravel compatible wrapper for the powerful [`php-mcp/server`](https://github.com/php-mcp/server) library. It allows you to effortlessly expose parts of your Laravel application as MCP **Tools**, **Resources**, and **Prompts**, enabling standardized communication with AI assistants like Anthropic's Claude, Cursor IDE, and others.
 
 **Key Features:**
 
