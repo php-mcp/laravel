@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace PhpMcp\Laravel;
 
 use Illuminate\Contracts\Foundation\Application;
-use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -21,7 +20,7 @@ use PhpMcp\Server\Model\Capabilities;
 use PhpMcp\Server\Registry;
 use PhpMcp\Server\Server;
 
-class McpServiceProvider extends ServiceProvider implements DeferrableProvider
+class McpServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
