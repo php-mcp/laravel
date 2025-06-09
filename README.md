@@ -217,7 +217,7 @@ For Laravel 11+:
 // bootstrap/app.php
 ->withMiddleware(function (Middleware $middleware) {
     $middleware->validateCsrfTokens(except: [
-        config('mcp.transports.http_integrated.route_prefix') . '/message',
+         'mcp/message', // Adjust if you changed the route prefix
     ]);
 })
 ```
