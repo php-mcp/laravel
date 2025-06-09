@@ -38,7 +38,7 @@ This package utilizes `php-mcp/server` v2.1.0+ which supports the `2024-11-05` v
 
 2.  **Publish Configuration:**
     ```bash
-    php artisan vendor:publish --provider="PhpMcp\Laravel\Server\McpServiceProvider" --tag="mcp-config"
+    php artisan vendor:publish --provider="PhpMcp\Laravel\McpServiceProvider" --tag="mcp-config"
     ```
 
 ## Configuration
