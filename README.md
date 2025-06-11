@@ -274,7 +274,8 @@ Configure your MCP client to execute this command directly. For example, in Curs
             "command": "php",
             "args": [
                 "/full/path/to/your/laravel/project/artisan",
-                "mcp:serve"
+                "mcp:serve",
+                "--transport=stdio"
             ]
         }
     }
