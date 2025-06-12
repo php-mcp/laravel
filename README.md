@@ -38,7 +38,7 @@ This package utilizes `php-mcp/server` v2.1.0+ which supports the `2024-11-05` v
 
 2.  **Publish Configuration:**
     ```bash
-    php artisan vendor:publish --provider="PhpMcp\Laravel\Server\McpServiceProvider" --tag="mcp-config"
+    php artisan vendor:publish --provider="PhpMcp\Laravel\McpServiceProvider" --tag="mcp-config"
     ```
 
 ## Configuration
@@ -303,9 +303,9 @@ If your available MCP elements or resource content change while the server is ru
 *   **List Changes (Tools, Resources, Prompts):**
     Dispatch the corresponding Laravel event. The package includes listeners to send the appropriate MCP notification.
     ```php
-    use PhpMcp\Laravel\Server\Events\ToolsListChanged;
-    use PhpMcp\Laravel\Server\Events\ResourcesListChanged;
-    use PhpMcp\Laravel\Server\Events\PromptsListChanged;
+    use PhpMcp\Laravel\Events\ToolsListChanged;
+    use PhpMcp\Laravel\Events\ResourcesListChanged;
+    use PhpMcp\Laravel\Events\PromptsListChanged;
 
     ToolsListChanged::dispatch();
     // ResourcesListChanged::dispatch();
@@ -313,9 +313,9 @@ If your available MCP elements or resource content change while the server is ru
     ```
 
 *   **Specific Resource Content Update:**
-    Dispatch the `PhpMcp\Laravel\Server\Events\ResourceUpdated` event with the URI of the changed resource.
+    Dispatch the `PhpMcp\Laravel\Events\ResourceUpdated` event with the URI of the changed resource.
     ```php
-    use PhpMcp\Laravel\Server\Events\ResourceUpdated;
+    use PhpMcp\Laravel\Events\ResourceUpdated;
 
     $resourceUri = 'file:///path/to/updated_file.txt';
     // ... your logic that updates the resource ...
