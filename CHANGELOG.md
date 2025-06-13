@@ -2,6 +2,26 @@
 
 All notable changes to `php-mcp/laravel` will be documented in this file.
 
+## v2.1.0 - 2025-06-13
+
+### What's Changed
+
+* Update README.md by @taylorotwell in https://github.com/php-mcp/laravel/pull/5
+* [docs] Fix publish config command for 2.x by @barryvdh in https://github.com/php-mcp/laravel/pull/7
+* [docs] Remove config call from app/bootstrap.php by @barryvdh in https://github.com/php-mcp/laravel/pull/8
+* Do not defer ServiceProvider to boot routes by @barryvdh in https://github.com/php-mcp/laravel/pull/9
+* Fix: Correct Client State Management in LaravelHttpTransport by @CodeWithKyrian in https://github.com/php-mcp/laravel/pull/17
+* chore: Update dependencies and improve MCP notification handling by @CodeWithKyrian in https://github.com/php-mcp/laravel/pull/18
+* docs: transport should be explicitly set to stdio for the tool to start by @xel1045 in https://github.com/php-mcp/laravel/pull/15
+
+### New Contributors
+
+* @taylorotwell made their first contribution in https://github.com/php-mcp/laravel/pull/5
+* @barryvdh made their first contribution in https://github.com/php-mcp/laravel/pull/7
+* @xel1045 made their first contribution in https://github.com/php-mcp/laravel/pull/15
+
+**Full Changelog**: https://github.com/php-mcp/laravel/compare/2.0.0...2.1.0
+
 ## v2.0.0 - 2025-06-04
 
 This release marks a **major overhaul**, bringing it into full alignment with `php-mcp/server` v2.1.0+ and introducing a significantly improved, more "Laravely" developer experience.
@@ -9,47 +29,59 @@ This release marks a **major overhaul**, bringing it into full alignment with `p
 ### Added
 
 * **Fluent Manual Registration API:**
-    * Introduced the `Mcp` Facade (`PhpMcp\Laravel\Facades\Mcp`).
-    * Define Tools, Resources, Prompts, and Resource Templates fluently (e.g., `Mcp::tool(...)->description(...)`).
-    * Definitions are typically placed in `routes/mcp.php` (configurable).
-    * Handlers are resolved via Laravel's service container, allowing dependency injection.
-    
+  
+  * Introduced the `Mcp` Facade (`PhpMcp\Laravel\Facades\Mcp`).
+  * Define Tools, Resources, Prompts, and Resource Templates fluently (e.g., `Mcp::tool(...)->description(...)`).
+  * Definitions are typically placed in `routes/mcp.php` (configurable).
+  * Handlers are resolved via Laravel's service container, allowing dependency injection.
+  
 * **Dedicated HTTP Server Transport via `mcp:serve`:**
-    * The `php artisan mcp:serve --transport=http` command now launches a standalone, high-performance ReactPHP-based HTTP server using `\PhpMcp\Server\Transports\HttpServerTransport`.
-    * Configuration for this dedicated server is in `config/mcp.php` under `transports.http_dedicated`.
-    * CLI options (`--host`, `--port`, `--path-prefix`) can override config defaults.
-    
+  
+  * The `php artisan mcp:serve --transport=http` command now launches a standalone, high-performance ReactPHP-based HTTP server using `\PhpMcp\Server\Transports\HttpServerTransport`.
+  * Configuration for this dedicated server is in `config/mcp.php` under `transports.http_dedicated`.
+  * CLI options (`--host`, `--port`, `--path-prefix`) can override config defaults.
+  
 * **`LaravelHttpTransport` for Integrated HTTP:**
-    * New `PhpMcp\Laravel\Transports\LaravelHttpTransport` class implements `ServerTransportInterface` to bridge Laravel's HTTP request lifecycle with the core MCP `Protocol` handler.
-    
+  
+  * New `PhpMcp\Laravel\Transports\LaravelHttpTransport` class implements `ServerTransportInterface` to bridge Laravel's HTTP request lifecycle with the core MCP `Protocol` handler.
+  
 * **Configurable Auto-Discovery:**
-    * `config('mcp.discovery.auto_discover')` (default: `true`) now controls whether discovery runs automatically or not. You can set it to false in production..
-    
+  
+  * `config('mcp.discovery.auto_discover')` (default: `true`) now controls whether discovery runs automatically or not. You can set it to false in production..
+  
 * **Interactive Prompt for `mcp:serve`:** If `--transport` is not specified, the command now interactively prompts the user to choose between `stdio` and `http`.
+  
 
 ### Changed
 
 * **Core Server Integration:** Now uses `\PhpMcp\Server\Server::make()` (ServerBuilder) for all server instantiation, fully leveraging `php-mcp/server` v2.x architecture.
+  
 * **Namespace:** Base package namespace changed from `PhpMcp\Laravel\Server` to **`PhpMcp\Laravel`**.
+  
 * **Configuration (`config/mcp.php`):**
-    * Significantly restructured and updated to align with `ServerBuilder` options.
-    * Clearer separation of settings for `http_dedicated` vs. `http_integrated` transports.
-    * Simplified cache TTL (`cache.ttl`) and discovery (`discovery.save_to_cache_on_discover`) keys.
-    * Added `server.instructions` for the `initialize` MCP response.
-    * Added `discovery.exclude_dirs` and `discovery.definitions_file`.
-    
+  
+  * Significantly restructured and updated to align with `ServerBuilder` options.
+  * Clearer separation of settings for `http_dedicated` vs. `http_integrated` transports.
+  * Simplified cache TTL (`cache.ttl`) and discovery (`discovery.save_to_cache_on_discover`) keys.
+  * Added `server.instructions` for the `initialize` MCP response.
+  * Added `discovery.exclude_dirs` and `discovery.definitions_file`.
+  
 * **`McpServiceProvider`:**
-    * Completely rewritten to correctly build and configure the `\PhpMcp\Server\Server` instance using Laravel's services for logging, caching (with fallback to core `FileCache`), container, and event loop.
-    * Loads manual definitions from the configured `definitions_file` via `McpRegistrar`.
-    * Sets up core `Registry` notifiers to dispatch Laravel events for list changes.
-    
+  
+  * Completely rewritten to correctly build and configure the `\PhpMcp\Server\Server` instance using Laravel's services for logging, caching (with fallback to core `FileCache`), container, and event loop.
+  * Loads manual definitions from the configured `definitions_file` via `McpRegistrar`.
+  * Sets up core `Registry` notifiers to dispatch Laravel events for list changes.
+  
 * **`McpController` (Integrated HTTP):** More robustly handles the integrated server behavior, working with a custom `LaravelHttpTransport`.
+  
 * **Artisan Commands:**
-    * `mcp:discover`: Now directly calls `Server::discover()` with configured/CLI parameters. `force` option behavior clarified.
-    * `mcp:list`: Fetches elements from the live, fully configured `Registry` from the resolved `Server` instance.
-    * `mcp:serve`: Refactored to use core `StdioServerTransport` or `HttpServerTransport` directly.
-    
+  
+  * `mcp:discover`: Now directly calls `Server::discover()` with configured/CLI parameters. `force` option behavior clarified.
+  * `mcp:list`: Fetches elements from the live, fully configured `Registry` from the resolved `Server` instance.
+  * `mcp:serve`: Refactored to use core `StdioServerTransport` or `HttpServerTransport` directly.
+  
 * **Dependency:** Updated `php-mcp/server` to `^2.2.0`
+  
 
 ### Fixed
 
@@ -66,7 +98,8 @@ This release marks a **major overhaul**, bringing it into full alignment with `p
 * **Configuration File:** The `config/mcp.php` file has been significantly restructured. You **must** republish and merge your customizations:
     ```bash
     php artisan vendor:publish --provider="PhpMcp\Laravel\McpServiceProvider" --tag="mcp-config" --force
-    
+  
+  
     ```
 * **`mcp:serve` for HTTP:** The `--transport=http` option for `mcp:serve` now launches a *dedicated* ReactPHP-based server process. For serving MCP via your main Laravel application routes, ensure the `http_integrated` transport is enabled in `config/mcp.php` and your web server is configured appropriately.
 * **Event Handling:** If you were directly listening to internal events from the previous version, these may have changed. Rely on the documented Laravel events (`ToolsListChanged`, etc.).
@@ -130,18 +163,22 @@ composer require php-mcp/laravel
 # 2. Publish the configuration file (optional but recommended)
 php artisan vendor:publish --provider="PhpMcp\Laravel\Server\McpServiceProvider" --tag="mcp-config"
 
+
 ```
 ## Getting Started
 
 1. **Define Elements:** Create PHP classes with methods annotated with `#[McpTool]`, `#[McpResource]`, etc., within directories specified in `config/mcp.php` (e.g., `app/Mcp`). Inject dependencies as needed. See [Defining MCP Elements](https://github.com/php-mcp/laravel/blob/main/README.md#defining-mcp-elements).
+   
 2. **Discovery:**
-    * In development, discovery runs automatically when needed.
-    * In production, run `php artisan mcp:discover` during your deployment process. See [Automatic Discovery vs. Manual Discovery](https://github.com/php-mcp/laravel/blob/main/README.md#automatic-discovery-development-vs-manual-discovery-production).
-    
+   
+   * In development, discovery runs automatically when needed.
+   * In production, run `php artisan mcp:discover` during your deployment process. See [Automatic Discovery vs. Manual Discovery](https://github.com/php-mcp/laravel/blob/main/README.md#automatic-discovery-development-vs-manual-discovery-production).
+   
 3. **Run the Server:**
-    * For **Stdio Transport:** Use `php artisan mcp:serve` and configure your client to execute this command (using the full path to `artisan`).
-    * For **HTTP+SSE Transport:** Ensure `transports.http.enabled` is true, run your Laravel app on a suitable web server (Nginx+FPM, Octane, etc. - **not** `php artisan serve`), exclude the MCP route from CSRF protection, and configure your client with the SSE URL (e.g., `http://your-app.test/mcp/sse`). See [Running the Server](https://github.com/php-mcp/laravel/blob/main/README.md#running-the-server) for critical details.
-    
+   
+   * For **Stdio Transport:** Use `php artisan mcp:serve` and configure your client to execute this command (using the full path to `artisan`).
+   * For **HTTP+SSE Transport:** Ensure `transports.http.enabled` is true, run your Laravel app on a suitable web server (Nginx+FPM, Octane, etc. - **not** `php artisan serve`), exclude the MCP route from CSRF protection, and configure your client with the SSE URL (e.g., `http://your-app.test/mcp/sse`). See [Running the Server](https://github.com/php-mcp/laravel/blob/main/README.md#running-the-server) for critical details.
+   
 
 ## Important Notes
 
