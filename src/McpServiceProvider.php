@@ -54,7 +54,6 @@ class McpServiceProvider extends ServiceProvider
         $this->bootRoutes();
         $this->bootEvents();
         $this->bootCommands();
-        $this->bootEventListeners();
     }
 
     protected function loadMcpDefinitions(): void
@@ -95,14 +94,19 @@ class McpServiceProvider extends ServiceProvider
             $registrar->applyBlueprints($builder);
 
             $server = $builder->build();
+            $registry = $server->getRegistry();
 
             if (config('mcp.discovery.auto_discover', true)) {
+                $registry->disableNotifications();
+
                 $server->discover(
                     basePath: config('mcp.discovery.base_path', base_path()),
                     scanDirs: config('mcp.discovery.directories', ['app/Mcp']),
                     excludeDirs: config('mcp.discovery.exclude_dirs', []),
                     saveToCache: config('mcp.discovery.save_to_cache', true)
                 );
+
+                $registry->enableNotifications();
             }
 
             return $server;
@@ -161,15 +165,5 @@ class McpServiceProvider extends ServiceProvider
             [ToolsListChanged::class, ResourcesListChanged::class, PromptsListChanged::class],
             McpNotificationListener::class,
         );
-    }
-
-    protected function bootEventListeners(): void
-    {
-        $server = $this->app->make(Server::class);
-        $registry = $server->getRegistry();
-
-        $registry->setToolsChangedNotifier(ToolsListChanged::dispatch(...));
-        $registry->setResourcesChangedNotifier(ResourcesListChanged::dispatch(...));
-        $registry->setPromptsChangedNotifier(PromptsListChanged::dispatch(...));
     }
 }
