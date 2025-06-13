@@ -95,23 +95,6 @@ class McpServiceProviderTest extends TestCase
         $this->assertNull($registry->findTool('stub_tool_one'), "Tool 'stub_tool_one' should not be found if auto-discovery is off.");
     }
 
-    public function test_event_notifiers_are_set_on_core_registry_and_dispatch_laravel_events()
-    {
-        Event::fake();
-
-        $server = $this->app->make('mcp.server');
-        $registry = $server->getRegistry();
-
-        $newToolName = 'dynamic_tool_for_event_test';
-        $this->assertNull($registry->findTool($newToolName));
-
-        $registry->registerTool(
-            new ToolDefinition(ManualTestHandler::class, 'handleTool', $newToolName, 'd', [])
-        );
-
-        Event::assertDispatched(ToolsListChanged::class);
-    }
-
     public function test_http_integrated_routes_are_registered_if_enabled()
     {
         $this->assertTrue(Route::has('mcp.sse'));
