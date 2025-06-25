@@ -19,7 +19,7 @@ use Throwable;
 
 use function React\Promise\resolve;
 
-class LaravelHttpTransport implements ServerTransportInterface
+class HttpServerTransport implements ServerTransportInterface
 {
     use EventEmitterTrait;
 

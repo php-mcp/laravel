@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace PhpMcp\Laravel\Http\Controllers;
 
 use Illuminate\Http\Request;
-use PhpMcp\Laravel\Transports\LaravelHttpTransport;
+use PhpMcp\Laravel\Transports\HttpServerTransport;
 use PhpMcp\Server\Server;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SseTransportController
 {
-    protected LaravelHttpTransport $transport;
+    protected HttpServerTransport $transport;
 
     /**
      * MCP Controller Constructor
@@ -21,7 +21,7 @@ class SseTransportController
      */
     public function __construct(Server $server)
     {
-        $this->transport = new LaravelHttpTransport($server->getSessionManager());
+        $this->transport = new HttpServerTransport($server->getSessionManager());
         $server->listen($this->transport, false);
     }
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace PhpMcp\Laravel\Http\Controllers;
 
 use Illuminate\Http\Request;
-use PhpMcp\Laravel\Transports\LaravelStreamableHttpTransport;
+use PhpMcp\Laravel\Transports\StreamableHttpServerTransport;
 use PhpMcp\Server\Contracts\EventStoreInterface;
 use PhpMcp\Server\Server;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,14 +13,14 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StreamableTransportController
 {
-    private LaravelStreamableHttpTransport $transport;
+    private StreamableHttpServerTransport $transport;
 
     public function __construct(Server $server)
     {
         $eventStore = $this->createEventStore();
         $sessionManager = $server->getSessionManager();
 
-        $this->transport = new LaravelStreamableHttpTransport($sessionManager, $eventStore);
+        $this->transport = new StreamableHttpServerTransport($sessionManager, $eventStore);
         $server->listen($this->transport, false);
     }
 
