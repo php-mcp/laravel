@@ -250,16 +250,13 @@ class StreamableHttpServerTransport implements ServerTransportInterface
                     break;
                 }
 
+                if (!$this->sessionManager->hasSession($sessionId)) {
+                    break;
+                }
+
                 $messages = $this->dequeueMessagesForContext($sessionId, 'get_sse');
                 foreach ($messages as $messageData) {
                     $this->sendSseEvent(rtrim($messageData['data'], "\n"), $messageData['id']);
-                }
-
-                static $keepAliveCounter = 0;
-                $keepAliveInterval = (int) round(15 / $pollInterval);
-                if (($keepAliveCounter++ % $keepAliveInterval) == 0) {
-                    echo ": keep-alive\n\n";
-                    $this->flushOutput();
                 }
 
                 usleep($pollInterval * 1000000);
