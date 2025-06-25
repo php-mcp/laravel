@@ -62,15 +62,16 @@ class McpServiceProvider extends ServiceProvider
             $logger = $app['log']->channel(config('mcp.logging.channel'));
             $cache = $app['cache']->store($app['config']->get('mcp.cache.store'));
             $capabilities = ServerCapabilities::make(
-                tools: config('mcp.capabilities.tools.enabled', true),
-                toolsListChanged: config('mcp.capabilities.tools.listChanged', true),
-                resources: config('mcp.capabilities.resources.enabled', true),
-                resourcesSubscribe: config('mcp.capabilities.resources.subscribe', true),
-                resourcesListChanged: config('mcp.capabilities.resources.listChanged', true),
-                prompts: config('mcp.capabilities.prompts.enabled', true),
-                promptsListChanged: config('mcp.capabilities.prompts.listChanged', true),
-                logging: config('mcp.capabilities.logging.enabled', true),
-                experimental: null,
+                tools: (bool) config('mcp.capabilities.tools', true),
+                toolsListChanged: (bool) config('mcp.capabilities.toolsListChanged', true),
+                resources: (bool) config('mcp.capabilities.resources', true),
+                resourcesSubscribe: (bool) config('mcp.capabilities.resourcesSubscribe', true),
+                resourcesListChanged: (bool) config('mcp.capabilities.resourcesListChanged', true),
+                prompts: (bool) config('mcp.capabilities.prompts', true),
+                promptsListChanged: (bool) config('mcp.capabilities.promptsListChanged', true),
+                logging: (bool) config('mcp.capabilities.logging', true),
+                completions: (bool) config('mcp.capabilities.completions', true),
+                experimental: config('mcp.capabilities.experimental', null),
             );
 
             $sessionHandler = $this->createSessionHandler($app);
@@ -83,7 +84,8 @@ class McpServiceProvider extends ServiceProvider
                 ->withCache($cache)
                 ->withSessionHandler($sessionHandler, $sessionTtl)
                 ->withCapabilities($capabilities)
-                ->withPaginationLimit((int) config('mcp.pagination_limit', 50));
+                ->withPaginationLimit((int) config('mcp.pagination_limit', 50))
+                ->withInstructions(config('mcp.server.instructions'));
 
             $registrar = $app->make(McpRegistrar::class);
             $registrar->applyBlueprints($builder);

@@ -153,28 +153,35 @@ return [
     | support for tools, resources, prompts, and their related functionality like
     | subscriptions and change notifications.
     |
+    | The following capabilities are supported:
+    | - tools - Whether the server offers tools.
+    | - toolsListChanged - Whether the server supports sending a notification when the list of tools changes.
+    | - resources - Whether the server offers resources.
+    | - resourcesSubscribe - Whether the server supports resource subscriptions.
+    | - resourcesListChanged - Whether the server supports sending a notification when the list of resources changes.
+    | - prompts - Whether the server offers prompts.
+    | - promptsListChanged - Whether the server supports sending a notification when the list of prompts changes.
+    | - logging - Whether the server supports sending log messages to the client.
+    | - completions - Whether the server supports argument autocompletion suggestions.
+    | - experimental - Experimental, non-standard capabilities that the server supports.
+    |
     */
     'capabilities' => [
-        'tools' => [
-            'enabled' => (bool) env('MCP_CAP_TOOLS_ENABLED', true),
-            'listChanged' => (bool) env('MCP_CAP_TOOLS_LIST_CHANGED', true),
-        ],
+        'tools' => (bool) env('MCP_CAP_TOOLS_ENABLED', true),
+        'toolsListChanged' => (bool) env('MCP_CAP_TOOLS_LIST_CHANGED', true),
 
-        'resources' => [
-            'enabled' => (bool) env('MCP_CAP_RESOURCES_ENABLED', true),
-            'subscribe' => (bool) env('MCP_CAP_RESOURCES_SUBSCRIBE', true),
-            'listChanged' => (bool) env('MCP_CAP_RESOURCES_LIST_CHANGED', true),
-        ],
+        'resources' => (bool) env('MCP_CAP_RESOURCES_ENABLED', true),
+        'resourcesSubscribe' => (bool) env('MCP_CAP_RESOURCES_SUBSCRIBE', true),
+        'resourcesListChanged' => (bool) env('MCP_CAP_RESOURCES_LIST_CHANGED', true),
 
-        'prompts' => [
-            'enabled' => (bool) env('MCP_CAP_PROMPTS_ENABLED', true),
-            'listChanged' => (bool) env('MCP_CAP_PROMPTS_LIST_CHANGED', true),
-        ],
+        'prompts' => (bool) env('MCP_CAP_PROMPTS_ENABLED', true),
+        'promptsListChanged' => (bool) env('MCP_CAP_PROMPTS_LIST_CHANGED', true),
 
-        'logging' => [
-            'enabled' => (bool) env('MCP_CAP_LOGGING_ENABLED', true),
-            'setLevel' => (bool) env('MCP_CAP_LOGGING_SET_LEVEL', false),
-        ],
+        'logging' => (bool) env('MCP_CAP_LOGGING_ENABLED', true),
+
+        'completions' => (bool) env('MCP_CAP_COMPLETIONS_ENABLED', true),
+
+        'experimental' => null,
     ],
 
     /*
