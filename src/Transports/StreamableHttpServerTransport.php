@@ -23,7 +23,7 @@ use Throwable;
 
 use function React\Promise\resolve;
 
-class LaravelStreamableHttpTransport implements ServerTransportInterface
+class StreamableHttpServerTransport implements ServerTransportInterface
 {
     use EventEmitterTrait;
 
@@ -73,6 +73,8 @@ class LaravelStreamableHttpTransport implements ServerTransportInterface
      */
     public function handlePostRequest(Request $request): Response
     {
+        $this->collectSessionGarbage();
+
         $acceptHeader = $request->header('Accept', '');
         if (!str_contains($acceptHeader, 'application/json') && !str_contains($acceptHeader, 'text/event-stream')) {
             $error = Error::forInvalidRequest('Not Acceptable: Client must accept application/json or text/event-stream');
