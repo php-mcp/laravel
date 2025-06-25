@@ -89,8 +89,6 @@ class ServeCommand extends Command
             return Command::FAILURE;
         }
 
-        $this->info("MCP Server (STDIO) stopped.");
-
         return Command::SUCCESS;
     }
 
