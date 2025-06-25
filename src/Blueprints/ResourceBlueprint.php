@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace PhpMcp\Laravel\Blueprints;
 
+use PhpMcp\Schema\Annotations;
+
 class ResourceBlueprint
 {
     public ?string $name = null;
@@ -14,7 +16,7 @@ class ResourceBlueprint
 
     public ?int $size = null;
 
-    public array $annotations = [];
+    public ?Annotations $annotations = null;
 
     public function __construct(
         public string $uri,
@@ -49,7 +51,7 @@ class ResourceBlueprint
         return $this;
     }
 
-    public function annotations(array $annotations): static
+    public function annotations(Annotations $annotations): static
     {
         $this->annotations = $annotations;
 

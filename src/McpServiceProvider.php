@@ -15,10 +15,11 @@ use PhpMcp\Laravel\Events\PromptsListChanged;
 use PhpMcp\Laravel\Events\ResourcesListChanged;
 use PhpMcp\Laravel\Events\ToolsListChanged;
 use PhpMcp\Laravel\Listeners\McpNotificationListener;
-use PhpMcp\Laravel\Transports\LaravelHttpTransport;
-use PhpMcp\Server\Model\Capabilities;
+
+use PhpMcp\Schema\ServerCapabilities;
 use PhpMcp\Server\Registry;
 use PhpMcp\Server\Server;
+use PhpMcp\Server\Session\SessionManager;
 
 class McpServiceProvider extends ServiceProvider
 {
@@ -42,7 +43,8 @@ class McpServiceProvider extends ServiceProvider
             McpRegistrar::class,
             Server::class,
             Registry::class,
-            LaravelHttpTransport::class,
+            SessionManager::class,
+
         ];
     }
 
@@ -71,24 +73,29 @@ class McpServiceProvider extends ServiceProvider
             $serverVersion = config('mcp.server.version', '1.0.0');
             $logger = $app['log']->channel(config('mcp.logging.channel'));
             $cache = $app['cache']->store($app['config']->get('mcp.cache.store'));
-            $capabilities = Capabilities::forServer(
-                toolsEnabled: config('mcp.capabilities.tools.enabled', true),
+            $capabilities = ServerCapabilities::make(
+                tools: config('mcp.capabilities.tools.enabled', true),
                 toolsListChanged: config('mcp.capabilities.tools.listChanged', true),
-                resourcesEnabled: config('mcp.capabilities.resources.enabled', true),
+                resources: config('mcp.capabilities.resources.enabled', true),
                 resourcesSubscribe: config('mcp.capabilities.resources.subscribe', true),
                 resourcesListChanged: config('mcp.capabilities.resources.listChanged', true),
-                promptsEnabled: config('mcp.capabilities.prompts.enabled', true),
+                prompts: config('mcp.capabilities.prompts.enabled', true),
                 promptsListChanged: config('mcp.capabilities.prompts.listChanged', true),
-                loggingEnabled: config('mcp.capabilities.logging.enabled', true),
-                instructions: config('mcp.server.instructions')
+                logging: config('mcp.capabilities.logging.enabled', true),
+                experimental: null,
             );
+
+            $sessionDriver = config('mcp.session.driver', 'cache');
+            $sessionTtl = (int) config('mcp.session.ttl', 3600);
 
             $builder = Server::make()
                 ->withServerInfo($serverName, $serverVersion)
                 ->withLogger($logger)
                 ->withContainer($app)
-                ->withCache($cache, (int) config('mcp.cache.ttl', 3600))
-                ->withCapabilities($capabilities);
+                ->withCache($cache)
+                ->withSession($sessionDriver, $sessionTtl)
+                ->withCapabilities($capabilities)
+                ->withPaginationLimit((int) config('mcp.pagination_limit', 50));
 
             $registrar = $app->make(McpRegistrar::class);
             $registrar->applyBlueprints($builder);
@@ -113,15 +120,10 @@ class McpServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(Registry::class, fn($app) => $app->make(Server::class)->getRegistry());
+        $this->app->singleton(SessionManager::class, fn($app) => $app->make(Server::class)->getSessionManager());
 
         $this->app->alias(Server::class, 'mcp.server');
         $this->app->alias(Registry::class, 'mcp.registry');
-
-        $this->app->singleton(LaravelHttpTransport::class, function (Application $app) {
-            $server = $app->make(Server::class);
-
-            return new LaravelHttpTransport($server->getClientStateManager());
-        });
     }
 
     protected function bootConfig(): void
@@ -143,7 +145,7 @@ class McpServiceProvider extends ServiceProvider
                 'prefix' => $routePrefix,
                 'middleware' => $middleware,
             ], function () {
-                $this->loadRoutesFrom(__DIR__ . '/../routes/mcp_http_integrated.php');
+                $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
             });
         }
     }

@@ -1207,16 +1207,16 @@
         },
         {
             "name": "laravel/framework",
-            "version": "v12.18.0",
+            "version": "v12.19.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/framework.git",
-                "reference": "7d264a0dad2bfc5c154240b38e8ce9b2c4cdd14d"
+                "reference": "4e6ec689ef704bb4bd282f29d9dd658dfb4fb262"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/framework/zipball/7d264a0dad2bfc5c154240b38e8ce9b2c4cdd14d",
-                "reference": "7d264a0dad2bfc5c154240b38e8ce9b2c4cdd14d",
+                "url": "https://api.github.com/repos/laravel/framework/zipball/4e6ec689ef704bb4bd282f29d9dd658dfb4fb262",
+                "reference": "4e6ec689ef704bb4bd282f29d9dd658dfb4fb262",
                 "shasum": ""
             },
             "require": {
@@ -1418,7 +1418,7 @@
                 "issues": "https://github.com/laravel/framework/issues",
                 "source": "https://github.com/laravel/framework"
             },
-            "time": "2025-06-10T14:48:34+00:00"
+            "time": "2025-06-18T12:56:23+00:00"
         },
         {
             "name": "laravel/prompts",
@@ -2262,16 +2262,16 @@
         },
         {
             "name": "nesbot/carbon",
-            "version": "3.10.0",
+            "version": "3.10.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/CarbonPHP/carbon.git",
-                "reference": "c1397390dd0a7e0f11660f0ae20f753d88c1f3d9"
+                "reference": "1fd1935b2d90aef2f093c5e35f7ae1257c448d00"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/CarbonPHP/carbon/zipball/c1397390dd0a7e0f11660f0ae20f753d88c1f3d9",
-                "reference": "c1397390dd0a7e0f11660f0ae20f753d88c1f3d9",
+                "url": "https://api.github.com/repos/CarbonPHP/carbon/zipball/1fd1935b2d90aef2f093c5e35f7ae1257c448d00",
+                "reference": "1fd1935b2d90aef2f093c5e35f7ae1257c448d00",
                 "shasum": ""
             },
             "require": {
@@ -2363,7 +2363,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2025-06-12T10:24:28+00:00"
+            "time": "2025-06-21T15:19:35+00:00"
         },
         {
             "name": "nette/schema",
@@ -2854,12 +2854,12 @@
             "dist": {
                 "type": "path",
                 "url": "../..",
-                "reference": "cdf7fbadc4830e0f01ffef363473e98f1ec3e8f4"
+                "reference": "807b5093ffe3345b02884439f06f5e2d6bc7ae84"
             },
             "require": {
                 "laravel/framework": "^9.46 || ^10.34 || ^11.29 || ^12.0",
                 "php": "^8.1",
-                "php-mcp/server": "^2.3"
+                "php-mcp/server": "^3.0"
             },
             "require-dev": {
                 "laravel/pint": "^1.13",
@@ -2924,25 +2924,66 @@
             }
         },
         {
-            "name": "php-mcp/server",
-            "version": "2.3.1",
+            "name": "php-mcp/schema",
+            "version": "1.0.1",
             "source": {
                 "type": "git",
-                "url": "https://github.com/php-mcp/server.git",
-                "reference": "686cac47af096907179ebf9ab38c9d5a75c5aa6f"
+                "url": "https://github.com/php-mcp/schema.git",
+                "reference": "de8a32e00a007b696a0fcc55cb813bd98f1ce42c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/php-mcp/server/zipball/686cac47af096907179ebf9ab38c9d5a75c5aa6f",
-                "reference": "686cac47af096907179ebf9ab38c9d5a75c5aa6f",
+                "url": "https://api.github.com/repos/php-mcp/schema/zipball/de8a32e00a007b696a0fcc55cb813bd98f1ce42c",
+                "reference": "de8a32e00a007b696a0fcc55cb813bd98f1ce42c",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "PhpMcp\\Schema\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Kyrian Obikwelu",
+                    "email": "koshnawaza@gmail.com"
+                }
+            ],
+            "description": "PHP Data Transfer Objects (DTOs) and Enums for the Model Context Protocol (MCP) schema.",
+            "support": {
+                "issues": "https://github.com/php-mcp/schema/issues",
+                "source": "https://github.com/php-mcp/schema/tree/1.0.1"
+            },
+            "time": "2025-06-25T04:27:57+00:00"
+        },
+        {
+            "name": "php-mcp/server",
+            "version": "3.0.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/php-mcp/server.git",
+                "reference": "96ff2cedbade121d3efb593276fbb7d090c5b6c6"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/php-mcp/server/zipball/96ff2cedbade121d3efb593276fbb7d090c5b6c6",
+                "reference": "96ff2cedbade121d3efb593276fbb7d090c5b6c6",
                 "shasum": ""
             },
             "require": {
                 "opis/json-schema": "^2.4",
                 "php": ">=8.1",
+                "php-mcp/schema": "^1.0",
                 "phpdocumentor/reflection-docblock": "^5.6",
+                "psr/clock": "^1.0",
                 "psr/container": "^1.0 || ^2.0",
-                "psr/event-dispatcher": "^1.0",
                 "psr/log": "^1.0 || ^2.0 || ^3.0",
                 "psr/simple-cache": "^1.0 || ^2.0 || ^3.0",
                 "react/event-loop": "^1.5",
@@ -2956,6 +2997,7 @@
                 "mockery/mockery": "^1.6",
                 "pestphp/pest": "^2.36.0|^3.5.0",
                 "react/async": "^4.0",
+                "react/child-process": "^0.6.6",
                 "symfony/var-dumper": "^6.4.11|^7.1.5"
             },
             "suggest": {
@@ -2988,9 +3030,9 @@
             ],
             "support": {
                 "issues": "https://github.com/php-mcp/server/issues",
-                "source": "https://github.com/php-mcp/server/tree/2.3.1"
+                "source": "https://github.com/php-mcp/server/tree/3.0.2"
             },
-            "time": "2025-06-13T11:04:31+00:00"
+            "time": "2025-06-25T03:41:58+00:00"
         },
         {
             "name": "phpdocumentor/reflection-common",
@@ -3703,16 +3745,16 @@
         },
         {
             "name": "psy/psysh",
-            "version": "v0.12.8",
+            "version": "v0.12.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bobthecow/psysh.git",
-                "reference": "85057ceedee50c49d4f6ecaff73ee96adb3b3625"
+                "reference": "1b801844becfe648985372cb4b12ad6840245ace"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bobthecow/psysh/zipball/85057ceedee50c49d4f6ecaff73ee96adb3b3625",
-                "reference": "85057ceedee50c49d4f6ecaff73ee96adb3b3625",
+                "url": "https://api.github.com/repos/bobthecow/psysh/zipball/1b801844becfe648985372cb4b12ad6840245ace",
+                "reference": "1b801844becfe648985372cb4b12ad6840245ace",
                 "shasum": ""
             },
             "require": {
@@ -3776,9 +3818,9 @@
             ],
             "support": {
                 "issues": "https://github.com/bobthecow/psysh/issues",
-                "source": "https://github.com/bobthecow/psysh/tree/v0.12.8"
+                "source": "https://github.com/bobthecow/psysh/tree/v0.12.9"
             },
-            "time": "2025-03-16T03:05:19+00:00"
+            "time": "2025-06-23T02:35:06+00:00"
         },
         {
             "name": "ralouphie/getallheaders",
@@ -7248,16 +7290,16 @@
         },
         {
             "name": "filp/whoops",
-            "version": "2.18.2",
+            "version": "2.18.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/filp/whoops.git",
-                "reference": "89dabca1490bc77dbcab41c2b20968c7e44bf7c3"
+                "reference": "59a123a3d459c5a23055802237cb317f609867e5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/filp/whoops/zipball/89dabca1490bc77dbcab41c2b20968c7e44bf7c3",
-                "reference": "89dabca1490bc77dbcab41c2b20968c7e44bf7c3",
+                "url": "https://api.github.com/repos/filp/whoops/zipball/59a123a3d459c5a23055802237cb317f609867e5",
+                "reference": "59a123a3d459c5a23055802237cb317f609867e5",
                 "shasum": ""
             },
             "require": {
@@ -7307,7 +7349,7 @@
             ],
             "support": {
                 "issues": "https://github.com/filp/whoops/issues",
-                "source": "https://github.com/filp/whoops/tree/2.18.2"
+                "source": "https://github.com/filp/whoops/tree/2.18.3"
             },
             "funding": [
                 {
@@ -7315,7 +7357,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2025-06-11T20:42:19+00:00"
+            "time": "2025-06-16T00:02:10+00:00"
         },
         {
             "name": "hamcrest/hamcrest-php",
@@ -7781,16 +7823,16 @@
         },
         {
             "name": "nunomaduro/collision",
-            "version": "v8.8.1",
+            "version": "v8.8.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nunomaduro/collision.git",
-                "reference": "44ccb82e3e21efb5446748d2a3c81a030ac22bd5"
+                "reference": "60207965f9b7b7a4ce15a0f75d57f9dadb105bdb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nunomaduro/collision/zipball/44ccb82e3e21efb5446748d2a3c81a030ac22bd5",
-                "reference": "44ccb82e3e21efb5446748d2a3c81a030ac22bd5",
+                "url": "https://api.github.com/repos/nunomaduro/collision/zipball/60207965f9b7b7a4ce15a0f75d57f9dadb105bdb",
+                "reference": "60207965f9b7b7a4ce15a0f75d57f9dadb105bdb",
                 "shasum": ""
             },
             "require": {
@@ -7876,7 +7918,7 @@
                     "type": "patreon"
                 }
             ],
-            "time": "2025-06-11T01:04:21+00:00"
+            "time": "2025-06-25T02:12:12+00:00"
         },
         {
             "name": "pestphp/pest",
@@ -8396,16 +8438,16 @@
         },
         {
             "name": "phpunit/php-code-coverage",
-            "version": "11.0.9",
+            "version": "11.0.10",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/php-code-coverage.git",
-                "reference": "14d63fbcca18457e49c6f8bebaa91a87e8e188d7"
+                "reference": "1a800a7446add2d79cc6b3c01c45381810367d76"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/php-code-coverage/zipball/14d63fbcca18457e49c6f8bebaa91a87e8e188d7",
-                "reference": "14d63fbcca18457e49c6f8bebaa91a87e8e188d7",
+                "url": "https://api.github.com/repos/sebastianbergmann/php-code-coverage/zipball/1a800a7446add2d79cc6b3c01c45381810367d76",
+                "reference": "1a800a7446add2d79cc6b3c01c45381810367d76",
                 "shasum": ""
             },
             "require": {
@@ -8462,15 +8504,27 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/php-code-coverage/issues",
                 "security": "https://github.com/sebastianbergmann/php-code-coverage/security/policy",
-                "source": "https://github.com/sebastianbergmann/php-code-coverage/tree/11.0.9"
+                "source": "https://github.com/sebastianbergmann/php-code-coverage/tree/show"
             },
             "funding": [
                 {
                     "url": "https://github.com/sebastianbergmann",
                     "type": "github"
+                },
+                {
+                    "url": "https://liberapay.com/sebastianbergmann",
+                    "type": "liberapay"
+                },
+                {
+                    "url": "https://thanks.dev/u/gh/sebastianbergmann",
+                    "type": "thanks_dev"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/phpunit/php-code-coverage",
+                    "type": "tidelift"
                 }
             ],
-            "time": "2025-02-25T13:26:39+00:00"
+            "time": "2025-06-18T08:56:18+00:00"
         },
         {
             "name": "phpunit/php-file-iterator",
