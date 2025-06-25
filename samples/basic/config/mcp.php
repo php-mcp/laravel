@@ -99,7 +99,7 @@ return [
             'domain' => env('MCP_HTTP_INTEGRATED_DOMAIN'),
             'sse_poll_interval' => (int) env('MCP_HTTP_INTEGRATED_SSE_POLL_SECONDS', 1),
             'cors_origin' => env('MCP_HTTP_INTEGRATED_CORS_ORIGIN', '*'),
-            'enable_json_response' => (bool) env('MCP_HTTP_INTEGRATED_JSON_RESPONSE', true),
+            'enable_json_response' => (bool) env('MCP_HTTP_INTEGRATED_JSON_RESPONSE', false),
             'json_response_timeout' => (int) env('MCP_HTTP_INTEGRATED_JSON_TIMEOUT', 30),
             'event_store' => env('MCP_HTTP_INTEGRATED_EVENT_STORE'), // FQCN or null
         ],

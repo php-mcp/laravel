@@ -74,6 +74,8 @@ class LaravelHttpTransport implements ServerTransportInterface
      */
     public function handleMessageRequest(Request $request): Response
     {
+        $this->collectSessionGarbage();
+
         if (!$request->isJson()) {
             Log::warning('Received POST request with invalid Content-Type');
 
@@ -201,12 +203,21 @@ class LaravelHttpTransport implements ServerTransportInterface
     /**
      * Flush output buffer
      */
-    private function flushOutput(): void
+    protected function flushOutput(): void
     {
         if (function_exists('ob_flush')) {
             @ob_flush();
         }
         @flush();
+    }
+
+    protected function collectSessionGarbage(): void
+    {
+        $lottery = config('mcp.session.lottery', [2, 100]);
+
+        if (random_int(1, $lottery[1]) <= $lottery[0]) {
+            $this->sessionManager->gc();
+        }
     }
 
     /**

@@ -81,9 +81,9 @@ class ServeCommand extends Command
         }
 
         $this->info('Starting MCP server');
-        $this->line("    \t- Transport: STDIO");
-        $this->line("    \t- Communication: STDIN/STDOUT");
-        $this->line("    \t- Mode: JSON-RPC over Standard I/O");
+        $this->line("  - Transport: STDIO");
+        $this->line("  - Communication: STDIN/STDOUT");
+        $this->line("  - Mode: JSON-RPC over Standard I/O");
 
         try {
             $transport = new StdioServerTransport;
@@ -139,8 +139,6 @@ class ServeCommand extends Command
             return Command::FAILURE;
         }
 
-        $this->info("MCP Server (Legacy HTTP) stopped.");
-
         return Command::SUCCESS;
     }
 
@@ -170,8 +168,6 @@ class ServeCommand extends Command
 
             return Command::FAILURE;
         }
-
-        $this->info("MCP Server (Streamable HTTP) stopped.");
 
         return Command::SUCCESS;
     }
