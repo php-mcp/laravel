@@ -15,11 +15,15 @@ use PhpMcp\Laravel\Events\PromptsListChanged;
 use PhpMcp\Laravel\Events\ResourcesListChanged;
 use PhpMcp\Laravel\Events\ToolsListChanged;
 use PhpMcp\Laravel\Listeners\McpNotificationListener;
-
 use PhpMcp\Schema\ServerCapabilities;
 use PhpMcp\Server\Registry;
 use PhpMcp\Server\Server;
 use PhpMcp\Server\Session\SessionManager;
+use PhpMcp\Server\Contracts\SessionHandlerInterface;
+use PhpMcp\Server\Session\ArraySessionHandler;
+use PhpMcp\Server\Session\CacheSessionHandler;
+use PhpMcp\Laravel\Session\DatabaseSessionHandler;
+use PhpMcp\Laravel\Session\FileSessionHandler;
 
 class McpServiceProvider extends ServiceProvider
 {
@@ -32,27 +36,11 @@ class McpServiceProvider extends ServiceProvider
         $this->app->alias(McpRegistrar::class, 'mcp.registrar');
     }
 
-    /**
-     * Get the services provided by the provider.
-     *
-     * @return array<int, string>
-     */
-    public function provides(): array
-    {
-        return [
-            McpRegistrar::class,
-            Server::class,
-            Registry::class,
-            SessionManager::class,
-
-        ];
-    }
-
     public function boot(): void
     {
         $this->loadMcpDefinitions();
         $this->buildServer();
-        $this->bootConfig();
+        $this->bootPublishables();
         $this->bootRoutes();
         $this->bootEvents();
         $this->bootCommands();
@@ -85,7 +73,7 @@ class McpServiceProvider extends ServiceProvider
                 experimental: null,
             );
 
-            $sessionDriver = config('mcp.session.driver', 'cache');
+            $sessionHandler = $this->createSessionHandler($app);
             $sessionTtl = (int) config('mcp.session.ttl', 3600);
 
             $builder = Server::make()
@@ -93,7 +81,7 @@ class McpServiceProvider extends ServiceProvider
                 ->withLogger($logger)
                 ->withContainer($app)
                 ->withCache($cache)
-                ->withSession($sessionDriver, $sessionTtl)
+                ->withSessionHandler($sessionHandler, $sessionTtl)
                 ->withCapabilities($capabilities)
                 ->withPaginationLimit((int) config('mcp.pagination_limit', 50));
 
@@ -126,10 +114,46 @@ class McpServiceProvider extends ServiceProvider
         $this->app->alias(Registry::class, 'mcp.registry');
     }
 
-    protected function bootConfig(): void
+    /**
+     * Create appropriate session handler based on configuration.
+     */
+    private function createSessionHandler(Application $app): SessionHandlerInterface
+    {
+        $driver = config('mcp.session.driver', 'cache');
+        $ttl = (int) config('mcp.session.ttl', 3600);
+
+        return match ($driver) {
+            'array' => new ArraySessionHandler($ttl),
+
+            'cache', 'redis', 'memcached', 'dynamodb' => new CacheSessionHandler(
+                $app['cache']->store(config('mcp.session.store', config('cache.default'))),
+                $ttl
+            ),
+
+            'file' => new FileSessionHandler(
+                $app['files'],
+                config('mcp.session.path', storage_path('framework/mcp_sessions')),
+                $ttl
+            ),
+
+            'database' => new DatabaseSessionHandler(
+                $app['db']->connection(config('mcp.session.connection')),
+                config('mcp.session.table', 'mcp_sessions'),
+                $ttl
+            ),
+
+            default => throw new \InvalidArgumentException("Unsupported MCP session driver: {$driver}")
+        };
+    }
+
+    protected function bootPublishables(): void
     {
         if ($this->app->runningInConsole()) {
             $this->publishes([__DIR__ . '/../config/mcp.php' => config_path('mcp.php')], 'mcp-config');
+
+            $this->publishes([
+                __DIR__ . '/../database/migrations/create_mcp_sessions_table.php' => database_path('migrations/' . date('Y_m_d_His', time()) . '_create_mcp_sessions_table.php'),
+            ], 'mcp-migrations');
         }
     }
 
