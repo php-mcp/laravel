@@ -53,14 +53,12 @@ return [
     | MCP Cache Configuration
     |--------------------------------------------------------------------------
     |
-    | Configure how the MCP server caches discovered elements and transport
-    | state using Laravel's cache system. You can specify which store to use
-    | and how long items should be cached.
+    | Configure how the MCP server caches discovered elements using Laravel's cache system.
+    | You can specify which store to use and how long items should be cached.
     |
     */
     'cache' => [
         'store' => env('MCP_CACHE_STORE', config('cache.default')),
-        'ttl' => env('MCP_CACHE_TTL', 3600),
     ],
 
     /*
@@ -68,10 +66,12 @@ return [
     | MCP Transport Configuration
     |--------------------------------------------------------------------------
     |
-    | Configure the available transports for MCP communication. Three types are
-    | supported: stdio for CLI clients, http_dedicated for a standalone server,
-    | and http_integrated for serving through Laravel's routing system.
+    | Configure the available transports for MCP communication.
     |
+    | Supported Transports:
+    | - `stdio`: for CLI clients.
+    | - `http_dedicated`: for a standalone server running on a process.
+    | - `http_integrated`: for serving through Laravel's routing system.
     */
     'transports' => [
         'stdio' => [
@@ -86,20 +86,19 @@ return [
             'path_prefix' => env('MCP_HTTP_DEDICATED_PATH_PREFIX', 'mcp'),
             'ssl_context_options' => [],
             'enable_json_response' => (bool) env('MCP_HTTP_DEDICATED_JSON_RESPONSE', true),
-            'event_store' => env('MCP_HTTP_DEDICATED_EVENT_STORE'), // FQCN or null
+            'event_store' => null, // FQCN or null
         ],
 
         'http_integrated' => [
             'enabled' => (bool) env('MCP_HTTP_INTEGRATED_ENABLED', true),
             'legacy' => (bool) env('MCP_HTTP_INTEGRATED_LEGACY', false),
             'route_prefix' => env('MCP_HTTP_INTEGRATED_ROUTE_PREFIX', 'mcp'),
-            'middleware' => explode(',', env('MCP_HTTP_INTEGRATED_MIDDLEWARE', 'web')),
+            'middleware' => explode(',', env('MCP_HTTP_INTEGRATED_MIDDLEWARE', 'api')),
             'domain' => env('MCP_HTTP_INTEGRATED_DOMAIN'),
             'sse_poll_interval' => (int) env('MCP_HTTP_INTEGRATED_SSE_POLL_SECONDS', 1),
             'cors_origin' => env('MCP_HTTP_INTEGRATED_CORS_ORIGIN', '*'),
             'enable_json_response' => (bool) env('MCP_HTTP_INTEGRATED_JSON_RESPONSE', true),
-            'json_response_timeout' => (int) env('MCP_HTTP_INTEGRATED_JSON_TIMEOUT', 30),
-            'event_store' => env('MCP_HTTP_INTEGRATED_EVENT_STORE'), // FQCN or null
+            'event_store' => null, // FQCN or null
         ],
     ],
 
@@ -109,13 +108,26 @@ return [
     |--------------------------------------------------------------------------
     |
     | Configure how the MCP server manages client sessions. Sessions store
-    | client state, message queues, and subscriptions.
+    | client state, message queues, and subscriptions. Supports Laravel's
+    | native session drivers for seamless integration.
     |
     */
     'session' => [
-        'driver' => env('MCP_SESSION_DRIVER', 'cache'), // 'array' or 'cache'
-        'ttl' => (int) env('MCP_SESSION_TTL', 3600), // Session lifetime in seconds
-        'lottery' => [2, 100], // 2% chance of garbage collection
+        'driver' => env('MCP_SESSION_DRIVER', 'cache'), // 'file', 'cache', 'database', 'redis', 'memcached', 'dynamodb', 'array'
+        'ttl' => (int) env('MCP_SESSION_TTL', 3600),
+
+        // For cache-based drivers (redis, memcached, etc.)
+        'store' => env('MCP_SESSION_CACHE_STORE', config('cache.default')),
+
+        // For file driver
+        'path' => env('MCP_SESSION_FILE_PATH', storage_path('framework/mcp_sessions')),
+
+        // For database driver
+        'connection' => env('MCP_SESSION_DB_CONNECTION', config('database.default')),
+        'table' => env('MCP_SESSION_DB_TABLE', 'mcp_sessions'),
+
+        // Session garbage collection probability. 2% chance that garbage collection will run on any given session operation.
+        'lottery' => [2, 100],
     ],
 
     /*
