@@ -54,10 +54,10 @@ class DiscoverCommand extends Command
 
         $registry = $server->getRegistry();
 
-        $toolsCount = $registry->allTools()->count();
-        $resourcesCount = $registry->allResources()->count();
-        $templatesCount = $registry->allResourceTemplates()->count();
-        $promptsCount = $registry->allPrompts()->count();
+        $toolsCount = count($registry->getTools());
+        $resourcesCount = count($registry->getResources());
+        $templatesCount = count($registry->getResourceTemplates());
+        $promptsCount = count($registry->getPrompts());
 
         $this->info('Discovery complete.');
         $this->table(
@@ -70,7 +70,7 @@ class DiscoverCommand extends Command
             ]
         );
 
-        if (! $noCache && $registry->discoveryRanOrCached()) {
+        if (! $noCache) {
             $this->info('MCP element definitions updated and cached.');
         }
 

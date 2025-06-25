@@ -6,8 +6,10 @@ namespace PhpMcp\Laravel\Commands;
 
 use Illuminate\Console\Command;
 use PhpMcp\Server\Server;
+use PhpMcp\Server\Contracts\EventStoreInterface;
 use PhpMcp\Server\Transports\HttpServerTransport;
 use PhpMcp\Server\Transports\StdioServerTransport;
+use PhpMcp\Server\Transports\StreamableHttpServerTransport;
 
 use function Laravel\Prompts\select;
 
@@ -78,7 +80,10 @@ class ServeCommand extends Command
             return Command::FAILURE;
         }
 
-        $this->info('Starting MCP server with STDIO transport...');
+        $this->info('Starting MCP server');
+        $this->line("    \t- Transport: STDIO");
+        $this->line("    \t- Communication: STDIN/STDOUT");
+        $this->line("    \t- Mode: JSON-RPC over Standard I/O");
 
         try {
             $transport = new StdioServerTransport;
@@ -100,12 +105,25 @@ class ServeCommand extends Command
             return Command::FAILURE;
         }
 
+        $isLegacy = config('mcp.transports.http_dedicated.legacy', false);
         $host = $this->option('host') ?? config('mcp.transports.http_dedicated.host', '127.0.0.1');
         $port = (int) ($this->option('port') ?? config('mcp.transports.http_dedicated.port', 8090));
-        $pathPrefix = $this->option('path-prefix') ?? config('mcp.transports.http_dedicated.path_prefix', 'mcp_server');
-        $sslContextOptions = config('mcp.transports.http_dedicated.ssl_context_options'); // For HTTPS
+        $pathPrefix = $this->option('path-prefix') ?? config('mcp.transports.http_dedicated.path_prefix', 'mcp');
+        $sslContextOptions = config('mcp.transports.http_dedicated.ssl_context_options');
 
-        $this->info("Starting MCP server with dedicated HTTP transport on http://{$host}:{$port} (prefix: /{$pathPrefix})...");
+        return $isLegacy
+            ? $this->handleSseHttpTransport($server, $host, $port, $pathPrefix, $sslContextOptions)
+            : $this->handleStreamableHttpTransport($server, $host, $port, $pathPrefix, $sslContextOptions);
+    }
+
+    private function handleSseHttpTransport(Server $server, string $host, int $port, string $pathPrefix, ?array $sslContextOptions): int
+    {
+        $this->info("Starting MCP server on http://{$host}:{$port}");
+        $this->line("  - Transport: Legacy HTTP");
+        $this->line("  - SSE endpoint: http://{$host}:{$port}/{$pathPrefix}/sse");
+        $this->line("  - Message endpoint: http://{$host}:{$port}/{$pathPrefix}/message");
+        $this->line("  - Mode: Server-Sent Events");
+
         $transport = new HttpServerTransport(
             host: $host,
             port: $port,
@@ -116,14 +134,78 @@ class ServeCommand extends Command
         try {
             $server->listen($transport);
         } catch (\Exception $e) {
-            $this->error("Failed to start MCP server with dedicated HTTP transport: {$e->getMessage()}");
+            $this->error("Failed to start MCP server with legacy HTTP transport: {$e->getMessage()}");
 
             return Command::FAILURE;
         }
 
-        $this->info("MCP Server (HTTP) stopped.");
+        $this->info("MCP Server (Legacy HTTP) stopped.");
 
         return Command::SUCCESS;
+    }
+
+    private function handleStreamableHttpTransport(Server $server, string $host, int $port, string $pathPrefix, ?array $sslContextOptions): int
+    {
+        $enableJsonResponse = config('mcp.transports.http_dedicated.enable_json_response', true);
+        $eventStore = $this->createEventStore();
+
+        $this->info("Starting MCP server on http://{$host}:{$port}");
+        $this->line("  - Transport: Streamable HTTP");
+        $this->line("  - MCP endpoint: http://{$host}:{$port}/{$pathPrefix}");
+        $this->line("  - Mode: " . ($enableJsonResponse ? 'JSON' : 'SSE Streaming'));
+
+        $transport = new StreamableHttpServerTransport(
+            host: $host,
+            port: $port,
+            mcpPath: $pathPrefix,
+            sslContext: $sslContextOptions,
+            enableJsonResponse: $enableJsonResponse,
+            eventStore: $eventStore
+        );
+
+        try {
+            $server->listen($transport);
+        } catch (\Exception $e) {
+            $this->error("Failed to start MCP server with streamable HTTP transport: {$e->getMessage()}");
+
+            return Command::FAILURE;
+        }
+
+        $this->info("MCP Server (Streamable HTTP) stopped.");
+
+        return Command::SUCCESS;
+    }
+
+    /**
+     * Create event store instance from configuration
+     */
+    private function createEventStore(): ?EventStoreInterface
+    {
+        $eventStoreFqcn = config('mcp.transports.http_dedicated.event_store');
+
+        if (!$eventStoreFqcn) {
+            return null;
+        }
+
+        if (is_object($eventStoreFqcn) && $eventStoreFqcn instanceof EventStoreInterface) {
+            return $eventStoreFqcn;
+        }
+
+        if (is_string($eventStoreFqcn) && class_exists($eventStoreFqcn)) {
+            $instance = app($eventStoreFqcn);
+
+            if (!$instance instanceof EventStoreInterface) {
+                throw new \InvalidArgumentException(
+                    "Event store class {$eventStoreFqcn} must implement EventStoreInterface"
+                );
+            }
+
+            return $instance;
+        }
+
+        throw new \InvalidArgumentException(
+            "Invalid event store configuration: {$eventStoreFqcn}"
+        );
     }
 
     private function handleInvalidTransport(string $transportOption): int

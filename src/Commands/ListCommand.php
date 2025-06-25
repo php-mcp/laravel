@@ -7,11 +7,11 @@ namespace PhpMcp\Laravel\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use PhpMcp\Server\Definitions\PromptDefinition;
-use PhpMcp\Server\Definitions\ResourceDefinition;
-use PhpMcp\Server\Definitions\ResourceTemplateDefinition;
-use PhpMcp\Server\Definitions\ToolDefinition;
 use PhpMcp\Server\Server;
+use PhpMcp\Schema\Tool;
+use PhpMcp\Schema\Resource;
+use PhpMcp\Schema\Prompt;
+use PhpMcp\Schema\ResourceTemplate;
 
 class ListCommand extends Command
 {
@@ -38,11 +38,11 @@ class ListCommand extends Command
     {
         $registry = $server->getRegistry();
 
-        if (! $registry->hasElements() && ! $registry->discoveryRanOrCached()) {
-            $this->comment('No MCP elements are manually registered, and discovery has not run (or cache is empty).');
-            $this->comment('Run `php artisan mcp:discover` or ensure auto-discovery is enabled in dev.');
-        } elseif (! $registry->hasElements() && $registry->discoveryRanOrCached()) {
-            $this->comment('Discovery/cache load ran, but no MCP elements were found.');
+        if (! $registry->hasElements()) {
+            $this->comment('MCP Registry is empty.');
+            $this->comment('Run `php artisan mcp:discover` to discover MCP elements.');
+
+            return Command::SUCCESS;
         }
 
         $type = $this->argument('type');
@@ -57,10 +57,10 @@ class ListCommand extends Command
         }
 
         $elements = [
-            'tools' => new Collection($registry->allTools()),
-            'resources' => new Collection($registry->allResources()),
-            'prompts' => new Collection($registry->allPrompts()),
-            'templates' => new Collection($registry->allResourceTemplates()),
+            'tools' => new Collection($registry->getTools()),
+            'resources' => new Collection($registry->getResources()),
+            'prompts' => new Collection($registry->getPrompts()),
+            'templates' => new Collection($registry->getResourceTemplates()),
         ];
 
         if ($outputJson) {
@@ -100,27 +100,27 @@ class ListCommand extends Command
         $this->info(ucfirst($type) . ':');
 
         $data = match ($type) {
-            'tools' => $collection->map(fn(ToolDefinition $def) => [
-                'Name' => $def->getName(),
-                'Description' => Str::limit($def->getDescription() ?? '-', 60),
-                'Handler' => $def->getClassName() . '::' . $def->getMethodName(),
+            'tools' => $collection->map(fn(Tool $def) => [
+                'Name' => $def->name,
+                'Description' => Str::limit($def->description ?? '-', 60),
+                // 'Handler' => $def->handler,
             ])->all(),
-            'resources' => $collection->map(fn(ResourceDefinition $def) => [
-                'URI' => $def->getUri(),
-                'Name' => $def->getName(),
-                'MIME' => $def->getMimeType() ?? '-',
-                'Handler' => $def->getClassName() . '::' . $def->getMethodName(),
+            'resources' => $collection->map(fn(Resource $def) => [
+                'URI' => $def->uri,
+                'Name' => $def->name,
+                'MIME' => $def->mimeType ?? '-',
+                // 'Handler' => $def->handler,
             ])->all(),
-            'prompts' => $collection->map(fn(PromptDefinition $def) => [
-                'Name' => $def->getName(),
-                'Description' => Str::limit($def->getDescription() ?? '-', 60),
-                'Handler' => $def->getClassName() . '::' . $def->getMethodName(),
+            'prompts' => $collection->map(fn(Prompt $def) => [
+                'Name' => $def->name,
+                'Description' => Str::limit($def->description ?? '-', 60),
+                // 'Handler' => $def->handler,
             ])->all(),
-            'templates' => $collection->map(fn(ResourceTemplateDefinition $def) => [
-                'URI Template' => $def->getUriTemplate(),
-                'Name' => $def->getName(),
-                'MIME' => $def->getMimeType() ?? '-',
-                'Handler' => $def->getClassName() . '::' . $def->getMethodName(),
+            'templates' => $collection->map(fn(ResourceTemplate $def) => [
+                'URI Template' => $def->uriTemplate,
+                'Name' => $def->name,
+                'MIME' => $def->mimeType ?? '-',
+                // 'Handler' => $def->handler,
             ])->all(),
             default => [],
         };

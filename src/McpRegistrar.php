@@ -106,7 +106,7 @@ class McpRegistrar
     public function applyBlueprints(ServerBuilder $builder): void
     {
         foreach ($this->pendingTools as $pendingTool) {
-            $builder->withTool($pendingTool->handler, $pendingTool->name, $pendingTool->description);
+            $builder->withTool($pendingTool->handler, $pendingTool->name, $pendingTool->description, $pendingTool->annotations);
         }
 
         foreach ($this->pendingResources as $pendingResource) {

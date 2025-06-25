@@ -44,7 +44,8 @@ class ServeCommandTest extends TestCase
         );
 
         $this->artisan('mcp:serve --transport=stdio')
-            ->expectsOutputToContain('Starting MCP server with STDIO transport...')
+            ->expectsOutputToContain('Starting MCP server')
+            ->expectsOutputToContain('Transport: STDIO')
             ->assertSuccessful();
     }
 
@@ -58,7 +59,9 @@ class ServeCommandTest extends TestCase
         );
 
         $this->artisan('mcp:serve --transport=http --host=localhost --port=9091 --path-prefix=mcp_test_http')
-            ->expectsOutputToContain('Starting MCP server with dedicated HTTP transport on http://localhost:9091 (prefix: /mcp_test_http)...')
+            ->expectsOutputToContain('Starting MCP server on http://localhost:9091')
+            ->expectsOutputToContain('Transport: Streamable HTTP')
+            ->expectsOutputToContain('MCP endpoint: http://localhost:9091/mcp_test_http')
             ->assertSuccessful();
     }
 
@@ -86,7 +89,9 @@ class ServeCommandTest extends TestCase
         );
 
         $this->artisan('mcp:serve --transport=http') // No CLI overrides
-            ->expectsOutputToContain('Starting MCP server with dedicated HTTP transport on http://0.0.0.0:8888 (prefix: /configured_prefix)...')
+            ->expectsOutputToContain('Starting MCP server on http://0.0.0.0:8888')
+            ->expectsOutputToContain('Transport: Streamable HTTP')
+            ->expectsOutputToContain('MCP endpoint: http://0.0.0.0:8888/configured_prefix')
             ->assertSuccessful();
     }
 
