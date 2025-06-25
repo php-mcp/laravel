@@ -115,6 +115,7 @@ return [
     'session' => [
         'driver' => env('MCP_SESSION_DRIVER', 'cache'), // 'array' or 'cache'
         'ttl' => (int) env('MCP_SESSION_TTL', 3600), // Session lifetime in seconds
+        'lottery' => [2, 100], // 2% chance of garbage collection
     ],
 
     /*

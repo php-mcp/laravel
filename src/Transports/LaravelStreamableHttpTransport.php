@@ -30,14 +30,7 @@ class LaravelStreamableHttpTransport implements ServerTransportInterface
     public function __construct(
         protected SessionManager $sessionManager,
         protected ?EventStoreInterface $eventStore = null
-    ) {
-        $this->on('message', function (Message $message, string $sessionId) {
-            $session = $this->sessionManager->getSession($sessionId);
-            if ($session !== null) {
-                $session->save();
-            }
-        });
-    }
+    ) {}
 
     protected function generateId(): string
     {
@@ -59,14 +52,14 @@ class LaravelStreamableHttpTransport implements ServerTransportInterface
 
         $eventId = null;
         if ($this->eventStore && isset($context['type']) && in_array($context['type'], ['get_sse', 'post_sse'])) {
-            $streamKey = $context['type'] === 'get_sse' ? "get_stream_{$sessionId}" : $context['streamId'] ?? "post_stream_{$sessionId}";
-            $eventId = $this->eventStore->storeEvent($streamKey, $rawMessage);
+            $streamId = $context['streamId'];
+            $eventId = $this->eventStore->storeEvent($streamId, $rawMessage);
         }
 
         $messageData = [
             'id' => $eventId ?? $this->generateId(),
             'data' => $rawMessage,
-            'context' => $context['type'] ?? 'get_sse',
+            'context' => $context,
             'timestamp' => time()
         ];
 
@@ -161,35 +154,26 @@ class LaravelStreamableHttpTransport implements ServerTransportInterface
             $context['type'] = 'post_json';
             $this->emit('message', [$message, $sessionId, $context]);
 
-            $maxWaitTime = config('mcp.transports.http_integrated.json_response_timeout', 30);
-            $pollInterval = 0.1; // 100ms
-            $waitedTime = 0;
+            $messages = $this->dequeueMessagesForContext($sessionId, 'post_json');
 
-            while ($waitedTime < $maxWaitTime) {
-                $messages = $this->dequeueMessagesForContext($sessionId, 'post_json');
-
-                if (!empty($messages)) {
-                    $responseMessage = $messages[0];
-                    $data = $responseMessage['data'];
-
-                    $headers = [
-                        'Content-Type' => 'application/json',
-                        ...$this->getCorsHeaders()
-                    ];
-
-                    if ($context['is_initialize_request'] ?? false) {
-                        $headers['Mcp-Session-Id'] = $sessionId;
-                    }
-
-                    return response()->make($data, 200, $headers);
-                }
-
-                usleep((int)($pollInterval * 1000000));
-                $waitedTime += $pollInterval;
+            if (empty($messages)) {
+                $error = Error::forInternalError('Internal error');
+                return response()->json($error, 500, $this->getCorsHeaders());
             }
 
-            $error = Error::forInternalError('Request timeout');
-            return response()->json($error, 504, $this->getCorsHeaders());
+            $responseMessage = $messages[0];
+            $data = $responseMessage['data'];
+
+            $headers = [
+                'Content-Type' => 'application/json',
+                ...$this->getCorsHeaders()
+            ];
+
+            if ($context['is_initialize_request'] ?? false) {
+                $headers['Mcp-Session-Id'] = $sessionId;
+            }
+
+            return response()->make($data, 200, $headers);
         } catch (Throwable $e) {
             Log::error('JSON response mode error', ['exception' => $e]);
             $error = Error::forInternalError('Internal error');
@@ -202,46 +186,29 @@ class LaravelStreamableHttpTransport implements ServerTransportInterface
      */
     protected function handleSseResponse(Message $message, string $sessionId, int $nRequests, array $context): StreamedResponse
     {
-        $streamId = $this->generateId();
-        $context['type'] = 'post_sse';
-        $context['streamId'] = $streamId;
-        $context['nRequests'] = $nRequests;
-
-        $this->emit('message', [$message, $sessionId, $context]);
-
-        return response()->stream(function () use ($sessionId, $nRequests, $streamId) {
-            $responsesSent = 0;
-            $maxWaitTime = 30; // 30 seconds timeout
-            $pollInterval = 0.1; // 100ms 
-            $waitedTime = 0;
-
-            while ($responsesSent < $nRequests && $waitedTime < $maxWaitTime) {
-                if (connection_aborted()) {
-                    break;
-                }
-
-                $messages = $this->dequeueMessagesForContext($sessionId, 'post_sse', $streamId);
-
-                foreach ($messages as $messageData) {
-                    $this->sendSseEvent($messageData['data'], $messageData['id']);
-                    $responsesSent++;
-
-                    if ($responsesSent >= $nRequests) {
-                        break;
-                    }
-                }
-
-                if ($responsesSent < $nRequests) {
-                    usleep((int)($pollInterval * 1000000));
-                    $waitedTime += $pollInterval;
-                }
-            }
-        }, headers: array_merge([
+        $headers = array_merge([
             'Content-Type' => 'text/event-stream',
             'Cache-Control' => 'no-cache',
             'Connection' => 'keep-alive',
             'X-Accel-Buffering' => 'no',
-        ], $this->getCorsHeaders()));
+        ], $this->getCorsHeaders());
+
+        if ($context['is_initialize_request'] ?? false) {
+            $headers['Mcp-Session-Id'] = $sessionId;
+        }
+
+        return response()->stream(function () use ($sessionId, $nRequests, $message, $context) {
+            $streamId = $this->generateId();
+            $context['type'] = 'post_sse';
+            $context['streamId'] = $streamId;
+            $context['nRequests'] = $nRequests;
+
+            $this->emit('message', [$message, $sessionId, $context]);
+
+            $messages = $this->dequeueMessagesForContext($sessionId, 'post_sse', $streamId);
+
+            $this->sendSseEvent($messages[0]['data'], $messages[0]['id']);
+        }, headers: $headers);
     }
 
     /**
@@ -325,7 +292,7 @@ class LaravelStreamableHttpTransport implements ServerTransportInterface
     /**
      * Dequeue messages for specific context, requeue others
      */
-    protected function dequeueMessagesForContext(string $sessionId, string $context, ?string $streamId = null): array
+    protected function dequeueMessagesForContext(string $sessionId, string $type, ?string $streamId = null): array
     {
         $allMessages = $this->sessionManager->dequeueMessages($sessionId);
         $contextMessages = [];
@@ -333,12 +300,13 @@ class LaravelStreamableHttpTransport implements ServerTransportInterface
 
         foreach ($allMessages as $rawMessage) {
             $messageData = json_decode($rawMessage, true);
+            $context = $messageData['context'] ?? [];
 
-            if ($messageData && isset($messageData['context'])) {
-                $matchesContext = $messageData['context'] === $context;
+            if ($messageData) {
+                $matchesContext = $context['type'] === $type;
 
-                if ($context === 'post_sse' && $streamId) {
-                    $matchesContext = $matchesContext && isset($messageData['streamId']) && $messageData['streamId'] === $streamId;
+                if ($type === 'post_sse' && $streamId) {
+                    $matchesContext = $matchesContext && isset($context['streamId']) && $context['streamId'] === $streamId;
                 }
 
                 if ($matchesContext) {
@@ -410,6 +378,15 @@ class LaravelStreamableHttpTransport implements ServerTransportInterface
             @ob_flush();
         }
         @flush();
+    }
+
+    protected function collectSessionGarbage(): void
+    {
+        $lottery = config('mcp.session.lottery', [2, 100]);
+
+        if (random_int(1, $lottery[1]) <= $lottery[0]) {
+            $this->sessionManager->gc();
+        }
     }
 
     /**
