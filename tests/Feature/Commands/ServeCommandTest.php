@@ -5,6 +5,7 @@ namespace PhpMcp\Laravel\Tests\Feature\Commands;
 use PhpMcp\Laravel\Tests\TestCase;
 use PhpMcp\Server\Server;
 use PhpMcp\Server\Transports\HttpServerTransport;
+use PhpMcp\Server\Transports\StreamableHttpServerTransport;
 use PhpMcp\Server\Transports\StdioServerTransport;
 use Mockery;
 use Orchestra\Testbench\Attributes\DefineEnvironment;
@@ -55,7 +56,7 @@ class ServeCommandTest extends TestCase
         $this->app->instance(Server::class, $serverMock);
 
         $serverMock->shouldReceive('listen')->once()->with(
-            Mockery::type(HttpServerTransport::class),
+            Mockery::type(StreamableHttpServerTransport::class),
         );
 
         $this->artisan('mcp:serve --transport=http --host=localhost --port=9091 --path-prefix=mcp_test_http')
@@ -78,13 +79,13 @@ class ServeCommandTest extends TestCase
                 $hostProp->setAccessible(true);
                 $portProp = $reflection->getProperty('port');
                 $portProp->setAccessible(true);
-                $prefixProp = $reflection->getProperty('mcpPathPrefix');
+                $prefixProp = $reflection->getProperty('mcpPath');
                 $prefixProp->setAccessible(true);
 
-                return $transport instanceof HttpServerTransport &&
+                return $transport instanceof StreamableHttpServerTransport &&
                     $hostProp->getValue($transport) === '0.0.0.0' &&
                     $portProp->getValue($transport) === 8888 &&
-                    $prefixProp->getValue($transport) === 'configured_prefix';
+                    $prefixProp->getValue($transport) === '/configured_prefix';
             }),
         );
 
