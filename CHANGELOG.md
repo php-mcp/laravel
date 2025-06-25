@@ -2,6 +2,14 @@
 
 All notable changes to `php-mcp/laravel` will be documented in this file.
 
+## v2.1.1 - 2025-06-25
+
+### What's Changed
+
+* Fix STDIO transport stream errors on client disconnect by @CodeWithKyrian in https://github.com/php-mcp/laravel/pull/23
+
+**Full Changelog**: https://github.com/php-mcp/laravel/compare/2.1.0...2.1.1
+
 ## v2.1.0 - 2025-06-13
 
 ### What's Changed
@@ -100,6 +108,7 @@ This release marks a **major overhaul**, bringing it into full alignment with `p
     php artisan vendor:publish --provider="PhpMcp\Laravel\McpServiceProvider" --tag="mcp-config" --force
   
   
+  
     ```
 * **`mcp:serve` for HTTP:** The `--transport=http` option for `mcp:serve` now launches a *dedicated* ReactPHP-based server process. For serving MCP via your main Laravel application routes, ensure the `http_integrated` transport is enabled in `config/mcp.php` and your web server is configured appropriately.
 * **Event Handling:** If you were directly listening to internal events from the previous version, these may have changed. Rely on the documented Laravel events (`ToolsListChanged`, etc.).
@@ -162,6 +171,7 @@ composer require php-mcp/laravel
 
 # 2. Publish the configuration file (optional but recommended)
 php artisan vendor:publish --provider="PhpMcp\Laravel\Server\McpServiceProvider" --tag="mcp-config"
+
 
 
 ```
