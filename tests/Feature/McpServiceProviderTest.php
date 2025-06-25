@@ -3,23 +3,18 @@
 namespace PhpMcp\Laravel\Tests\Feature;
 
 use Illuminate\Contracts\Container\Container;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Orchestra\Testbench\Attributes\DefineEnvironment;
 use PhpMcp\Laravel\McpServiceProvider;
-use PhpMcp\Laravel\Events\ToolsListChanged;
 use PhpMcp\Laravel\McpRegistrar;
-use PhpMcp\Laravel\Tests\Stubs\App\Mcp\ManualTestHandler;
 use PhpMcp\Laravel\Tests\TestCase;
-use PhpMcp\Laravel\Transports\LaravelHttpTransport;
-use PhpMcp\Server\Definitions\ToolDefinition;
+use PhpMcp\Laravel\Transports\StreamableHttpServerTransport;
 use PhpMcp\Server\Protocol;
 use PhpMcp\Server\Registry;
 use PhpMcp\Server\Server;
-use PhpMcp\Server\State\ClientStateManager;
+use PhpMcp\Server\Session\SessionManager;
 use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
-use React\EventLoop\LoopInterface;
 
 class McpServiceProviderTest extends TestCase
 {
@@ -27,7 +22,6 @@ class McpServiceProviderTest extends TestCase
     {
         $app['config']->set('mcp.server.name', 'My Awesome MCP Test Server');
         $app['config']->set('mcp.server.version', 'v2.test');
-        $app['config']->set('mcp.server.instructions', 'Test instructions from config.');
         $app['config']->set('mcp.cache.ttl', 7200);
     }
 
@@ -55,13 +49,12 @@ class McpServiceProviderTest extends TestCase
 
         $this->assertInstanceOf(Registry::class, $server1->getRegistry());
         $this->assertInstanceOf(Protocol::class, $server1->getProtocol());
-        $this->assertInstanceOf(ClientStateManager::class, $server1->getClientStateManager());
+        $this->assertInstanceOf(SessionManager::class, $server1->getSessionManager());
         $this->assertInstanceOf(McpRegistrar::class, $this->app->make('mcp.registrar'));
-        $this->assertInstanceOf(LaravelHttpTransport::class, $this->app->make(LaravelHttpTransport::class));
+        $this->assertInstanceOf(StreamableHttpServerTransport::class, $this->app->make(StreamableHttpServerTransport::class));
 
         $configVO = $server1->getConfiguration();
         $this->assertInstanceOf(LoggerInterface::class, $configVO->logger);
-        $this->assertInstanceOf(LoopInterface::class, $configVO->loop);
         $this->assertInstanceOf(CacheInterface::class, $configVO->cache);
         $this->assertInstanceOf(Container::class, $configVO->container);
     }
@@ -72,18 +65,17 @@ class McpServiceProviderTest extends TestCase
         $server = $this->app->make('mcp.server');
         $configVO = $server->getConfiguration();
 
-        $this->assertEquals('My Awesome MCP Test Server', $configVO->serverName);
-        $this->assertEquals('v2.test', $configVO->serverVersion);
-        $this->assertEquals('Test instructions from config.', $configVO->capabilities->instructions);
-        $this->assertEquals(7200, $configVO->definitionCacheTtl);
-        $this->assertTrue($configVO->capabilities->promptsEnabled);
+        $this->assertEquals('My Awesome MCP Test Server', $configVO->serverInfo->name);
+        $this->assertEquals('v2.test', $configVO->serverInfo->version);
+        $this->assertEquals(50, $configVO->paginationLimit);
+        $this->assertTrue($configVO->capabilities->prompts->listChanged ?? true);
     }
 
     public function test_auto_discovery_is_triggered_when_enabled()
     {
         $server = $this->app->make('mcp.server');
         $registry = $server->getRegistry();
-        $this->assertNotNull($registry->findTool('stub_tool_one'), "Discovered tool 'stub_tool_one' not found in registry.");
+        $this->assertNotNull($registry->getTool('stub_tool_one'), "Discovered tool 'stub_tool_one' not found in registry.");
     }
 
     #[DefineEnvironment('disableAutoDiscovery')]
@@ -92,20 +84,22 @@ class McpServiceProviderTest extends TestCase
         $server = $this->app->make('mcp.server');
         $registry = $server->getRegistry();
 
-        $this->assertNull($registry->findTool('stub_tool_one'), "Tool 'stub_tool_one' should not be found if auto-discovery is off.");
+        $this->assertNull($registry->getTool('stub_tool_one'), "Tool 'stub_tool_one' should not be found if auto-discovery is off.");
     }
 
     public function test_http_integrated_routes_are_registered_if_enabled()
     {
-        $this->assertTrue(Route::has('mcp.sse'));
-        $this->assertTrue(Route::has('mcp.message'));
-        $this->assertStringContainsString('/mcp/sse', route('mcp.sse'));
+        $this->assertTrue(Route::has('mcp.streamable.get'));
+        $this->assertTrue(Route::has('mcp.streamable.post'));
+        $this->assertTrue(Route::has('mcp.streamable.delete'));
+        $this->assertStringContainsString('/mcp', route('mcp.streamable.get'));
     }
 
     #[DefineEnvironment('disableHttpIntegratedRoutes')]
     public function test_http_integrated_routes_are_not_registered_if_disabled()
     {
-        $this->assertFalse(Route::has('mcp.sse'));
-        $this->assertFalse(Route::has('mcp.message'));
+        $this->assertFalse(Route::has('mcp.streamable.get'));
+        $this->assertFalse(Route::has('mcp.streamable.post'));
+        $this->assertFalse(Route::has('mcp.streamable.delete'));
     }
 }

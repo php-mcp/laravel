@@ -5,10 +5,10 @@ namespace PhpMcp\Laravel\Tests\Feature;
 use PhpMcp\Laravel\Tests\Stubs\App\Mcp\ManualTestHandler;
 use PhpMcp\Laravel\Tests\Stubs\App\Mcp\ManualTestInvokableHandler;
 use PhpMcp\Laravel\Tests\TestCase;
-use PhpMcp\Server\Definitions\PromptDefinition;
-use PhpMcp\Server\Definitions\ResourceDefinition;
-use PhpMcp\Server\Definitions\ResourceTemplateDefinition;
-use PhpMcp\Server\Definitions\ToolDefinition;
+use PhpMcp\Server\Elements\RegisteredTool;
+use PhpMcp\Server\Elements\RegisteredResource;
+use PhpMcp\Server\Elements\RegisteredResourceTemplate;
+use PhpMcp\Server\Elements\RegisteredPrompt;
 
 class ManualRegistrationTest extends TestCase
 {
@@ -26,15 +26,15 @@ class ManualRegistrationTest extends TestCase
 
         $registry = $this->app->make('mcp.registry');
 
-        $tool = $registry->findTool('manual_test_tool');
+        $tool = $registry->getTool('manual_test_tool');
 
-        $this->assertInstanceOf(ToolDefinition::class, $tool);
-        $this->assertEquals('manual_test_tool', $tool->getName());
-        $this->assertEquals('A manually registered test tool.', $tool->getDescription());
-        $this->assertEquals(ManualTestHandler::class, $tool->getClassName());
-        $this->assertEquals('handleTool', $tool->getMethodName());
-        $this->assertArrayHasKey('input', $tool->getInputSchema()['properties']);
-        $this->assertEquals('string', $tool->getInputSchema()['properties']['input']['type']);
+        $this->assertInstanceOf(RegisteredTool::class, $tool);
+        $this->assertEquals('manual_test_tool', $tool->schema->name);
+        $this->assertEquals('A manually registered test tool.', $tool->schema->description);
+        $this->assertEquals(ManualTestHandler::class, $tool->handlerClass);
+        $this->assertEquals('handleTool', $tool->handlerMethod);
+        $this->assertArrayHasKey('input', $tool->schema->inputSchema['properties']);
+        $this->assertEquals('string', $tool->schema->inputSchema['properties']['input']['type']);
     }
 
     public function test_can_manually_register_tool_using_handler_only()
@@ -49,12 +49,12 @@ class ManualRegistrationTest extends TestCase
         $this->setMcpDefinitions($definitionsContent);
 
         $registry = $this->app->make('mcp.registry');
-        $tool = $registry->findTool('handleTool');
+        $tool = $registry->getTool('handleTool');
 
         $this->assertNotNull($tool);
-        $this->assertEquals(ManualTestHandler::class, $tool->getClassName());
-        $this->assertEquals('handleTool', $tool->getMethodName());
-        $this->assertEquals('A sample tool handler.', $tool->getDescription());
+        $this->assertEquals(ManualTestHandler::class, $tool->handlerClass);
+        $this->assertEquals('handleTool', $tool->handlerMethod);
+        $this->assertEquals('A sample tool handler.', $tool->schema->description);
     }
 
     public function test_can_manually_register_a_resource()
@@ -63,26 +63,27 @@ class ManualRegistrationTest extends TestCase
         <?php
         use PhpMcp\Laravel\Facades\Mcp;
         use PhpMcp\Laravel\Tests\Stubs\App\Mcp\ManualTestHandler;
+        use PhpMcp\Schema\Annotations;
 
         Mcp::resource('manual://config/app-setting', [ManualTestHandler::class, 'handleResource'])
             ->name('manual_app_setting')
             ->mimeType('application/json')
             ->size(1024)
-            ->annotations(['category' => 'config']);
+            ->annotations(Annotations::make(priority:0.8));
         PHP;
         $this->setMcpDefinitions($definitionsContent);
 
         $registry = $this->app->make('mcp.registry');
-        $resource = $registry->findResourceByUri('manual://config/app-setting');
+        $resource = $registry->getResource('manual://config/app-setting');
 
-        $this->assertInstanceOf(ResourceDefinition::class, $resource);
-        $this->assertEquals('manual_app_setting', $resource->getName());
-        $this->assertEquals('A sample resource handler.', $resource->getDescription());
-        $this->assertEquals('application/json', $resource->getMimeType());
-        $this->assertEquals(1024, $resource->getSize());
-        $this->assertEquals(['category' => 'config'], $resource->getAnnotations());
-        $this->assertEquals(ManualTestHandler::class, $resource->getClassName());
-        $this->assertEquals('handleResource', $resource->getMethodName());
+        $this->assertInstanceOf(RegisteredResource::class, $resource);
+        $this->assertEquals('manual_app_setting', $resource->schema->name);
+        $this->assertEquals('A sample resource handler.', $resource->schema->description);
+        $this->assertEquals('application/json', $resource->schema->mimeType);
+        $this->assertEquals(1024, $resource->schema->size);
+        $this->assertEquals(['priority' => 0.8], $resource->schema->annotations->toArray());
+        $this->assertEquals(ManualTestHandler::class, $resource->handlerClass);
+        $this->assertEquals('handleResource', $resource->handlerMethod);
     }
 
     public function test_can_manually_register_a_prompt_with_invokable_class_handler()
@@ -98,13 +99,13 @@ class ManualRegistrationTest extends TestCase
         $this->setMcpDefinitions($definitionsContent);
 
         $registry = $this->app->make('mcp.registry');
-        $prompt = $registry->findPrompt('manual_invokable_prompt');
+        $prompt = $registry->getPrompt('manual_invokable_prompt');
 
-        $this->assertInstanceOf(PromptDefinition::class, $prompt);
-        $this->assertEquals('manual_invokable_prompt', $prompt->getName());
-        $this->assertEquals('A prompt handled by an invokable class.', $prompt->getDescription());
-        $this->assertEquals(ManualTestInvokableHandler::class, $prompt->getClassName());
-        $this->assertEquals('__invoke', $prompt->getMethodName());
+        $this->assertInstanceOf(RegisteredPrompt::class, $prompt);
+        $this->assertEquals('manual_invokable_prompt', $prompt->schema->name);
+        $this->assertEquals('A prompt handled by an invokable class.', $prompt->schema->description);
+        $this->assertEquals(ManualTestInvokableHandler::class, $prompt->handlerClass);
+        $this->assertEquals('__invoke', $prompt->handlerMethod);
     }
 
     public function test_can_manually_register_a_resource_template_via_facade()
@@ -121,16 +122,15 @@ class ManualRegistrationTest extends TestCase
         $this->setMcpDefinitions($definitionsContent);
 
         $registry = $this->app->make('mcp.registry');
-        $templateMatch = $registry->findResourceTemplateByUri('manual://item/123/details');
+        $template = $registry->getResource('manual://item/123/details');
 
-        $this->assertNotNull($templateMatch);
-        $template = $templateMatch['definition'];
-        $this->assertInstanceOf(ResourceTemplateDefinition::class, $template);
-        $this->assertEquals('manual://item/{itemId}/details', $template->getUriTemplate());
-        $this->assertEquals('manual_item_details_template', $template->getName());
-        $this->assertEquals('A sample resource template handler.', $template->getDescription());
-        $this->assertEquals('application/vnd.api+json', $template->getMimeType());
-        $this->assertEquals(ManualTestHandler::class, $template->getClassName());
-        $this->assertEquals('handleTemplate', $template->getMethodName());
+        $this->assertNotNull($template);
+        $this->assertInstanceOf(RegisteredResourceTemplate::class, $template);
+        $this->assertEquals('manual://item/{itemId}/details', $template->schema->uriTemplate);
+        $this->assertEquals('manual_item_details_template', $template->schema->name);
+        $this->assertEquals('A sample resource template handler.', $template->schema->description);
+        $this->assertEquals('application/vnd.api+json', $template->schema->mimeType);
+        $this->assertEquals(ManualTestHandler::class, $template->handlerClass);
+        $this->assertEquals('handleTemplate', $template->handlerMethod);
     }
 }

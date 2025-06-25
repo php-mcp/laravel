@@ -12,11 +12,10 @@ class DiscoverCommandTest extends TestCase
     public function test_discover_command_displays_correct_element_counts()
     {
         $registryMock = Mockery::mock(Registry::class);
-        $registryMock->shouldReceive('allTools->count')->andReturn(2);
-        $registryMock->shouldReceive('allResources->count')->andReturn(1);
-        $registryMock->shouldReceive('allResourceTemplates->count')->andReturn(0);
-        $registryMock->shouldReceive('allPrompts->count')->andReturn(3);
-        $registryMock->shouldReceive('discoveryRanOrCached')->andReturn(true);
+        $registryMock->shouldReceive('getTools')->andReturn(['tool1', 'tool2']);
+        $registryMock->shouldReceive('getResources')->andReturn(['resource1']);
+        $registryMock->shouldReceive('getResourceTemplates')->andReturn([]);
+        $registryMock->shouldReceive('getPrompts')->andReturn(['prompt1', 'prompt2', 'prompt3']);
 
         $serverMock = $this->mock(Server::class, function ($mock) use ($registryMock) {
             $mock->shouldReceive('discover')->once();

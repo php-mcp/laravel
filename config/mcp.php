@@ -72,6 +72,9 @@ return [
     | - `stdio`: for CLI clients.
     | - `http_dedicated`: for a standalone server running on a process.
     | - `http_integrated`: for serving through Laravel's routing system.
+    |
+    | The 'legacy' option is used to enable the deprecated HTTP+SSE transport.
+    | It is not recommended to use this option.
     */
     'transports' => [
         'stdio' => [
@@ -93,7 +96,7 @@ return [
             'enabled' => (bool) env('MCP_HTTP_INTEGRATED_ENABLED', true),
             'legacy' => (bool) env('MCP_HTTP_INTEGRATED_LEGACY', false),
             'route_prefix' => env('MCP_HTTP_INTEGRATED_ROUTE_PREFIX', 'mcp'),
-            'middleware' => explode(',', env('MCP_HTTP_INTEGRATED_MIDDLEWARE', 'api')),
+            'middleware' => ['api'],
             'domain' => env('MCP_HTTP_INTEGRATED_DOMAIN'),
             'sse_poll_interval' => (int) env('MCP_HTTP_INTEGRATED_SSE_POLL_SECONDS', 1),
             'cors_origin' => env('MCP_HTTP_INTEGRATED_CORS_ORIGIN', '*'),
