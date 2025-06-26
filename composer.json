@@ -1,13 +1,20 @@
 {
     "name": "php-mcp/laravel",
-    "description": "The official Laravel integration for the PHP MCP Server package.",
+    "description": "Laravel SDK for building Model Context Protocol (MCP) servers - Seamlessly integrate MCP tools, resources, and prompts into Laravel applications",
     "keywords": [
         "laravel",
         "mcp",
         "model-context-protocol",
         "ai",
         "llm",
-        "tools"
+        "tools",
+        "laravel mcp",
+        "laravel mcp sdk",
+        "laravel mcp server",
+        "laravel mcp tools",
+        "laravel mcp resources",
+        "laravel mcp prompts",
+        "laravel model context protocol"
     ],
     "homepage": "https://github.com/php-mcp/laravel",
     "license": "MIT",
