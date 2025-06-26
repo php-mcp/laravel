@@ -2,6 +2,42 @@
 
 All notable changes to `php-mcp/laravel` will be documented in this file.
 
+## v3.0.0 - 2025-06-26
+
+### Major Changes
+
+- **Upgraded to php-mcp/server ^3.0** with latest MCP protocol support(`2025-03-26`)
+- **Laravel-native session management** with multiple storage backends (file, database, cache, redis)
+- **Streamable HTTP transport** with resumability and better connection handling
+- **Simplified configuration** structure for capabilities and session management
+
+### Improvements
+
+- Enhanced transport layer with better error handling
+- Automatic session garbage collection
+- Updated documentation with migration guide
+
+### Fixes
+
+- Fixed SSE stream handling for expired sessions
+- Improved transport initialization
+- Better memory management for long-running servers
+
+### Breaking Changes
+
+- Requires `php-mcp/server ^3.0`
+- Updated configuration structure (see migration guide in `README`)
+- Transport class names changed for consistency
+
+### Installation
+
+```bash
+composer require php-mcp/laravel:^3.0
+php artisan vendor:publish --provider="PhpMcp\Laravel\McpServiceProvider"
+
+```
+**Full Changelog**: https://github.com/php-mcp/laravel/compare/2.1.1...3.0.0
+
 ## v2.1.1 - 2025-06-25
 
 ### What's Changed
@@ -109,6 +145,7 @@ This release marks a **major overhaul**, bringing it into full alignment with `p
   
   
   
+  
     ```
 * **`mcp:serve` for HTTP:** The `--transport=http` option for `mcp:serve` now launches a *dedicated* ReactPHP-based server process. For serving MCP via your main Laravel application routes, ensure the `http_integrated` transport is enabled in `config/mcp.php` and your web server is configured appropriately.
 * **Event Handling:** If you were directly listening to internal events from the previous version, these may have changed. Rely on the documented Laravel events (`ToolsListChanged`, etc.).
@@ -171,6 +208,7 @@ composer require php-mcp/laravel
 
 # 2. Publish the configuration file (optional but recommended)
 php artisan vendor:publish --provider="PhpMcp\Laravel\Server\McpServiceProvider" --tag="mcp-config"
+
 
 
 
