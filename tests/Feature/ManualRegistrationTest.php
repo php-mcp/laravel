@@ -31,8 +31,7 @@ class ManualRegistrationTest extends TestCase
         $this->assertInstanceOf(RegisteredTool::class, $tool);
         $this->assertEquals('manual_test_tool', $tool->schema->name);
         $this->assertEquals('A manually registered test tool.', $tool->schema->description);
-        $this->assertEquals(ManualTestHandler::class, $tool->handlerClass);
-        $this->assertEquals('handleTool', $tool->handlerMethod);
+        $this->assertEquals([ManualTestHandler::class, 'handleTool'], $tool->handler);
         $this->assertArrayHasKey('input', $tool->schema->inputSchema['properties']);
         $this->assertEquals('string', $tool->schema->inputSchema['properties']['input']['type']);
     }
@@ -52,8 +51,7 @@ class ManualRegistrationTest extends TestCase
         $tool = $registry->getTool('handleTool');
 
         $this->assertNotNull($tool);
-        $this->assertEquals(ManualTestHandler::class, $tool->handlerClass);
-        $this->assertEquals('handleTool', $tool->handlerMethod);
+        $this->assertEquals([ManualTestHandler::class, 'handleTool'], $tool->handler);
         $this->assertEquals('A sample tool handler.', $tool->schema->description);
     }
 
@@ -82,8 +80,7 @@ class ManualRegistrationTest extends TestCase
         $this->assertEquals('application/json', $resource->schema->mimeType);
         $this->assertEquals(1024, $resource->schema->size);
         $this->assertEquals(['priority' => 0.8], $resource->schema->annotations->toArray());
-        $this->assertEquals(ManualTestHandler::class, $resource->handlerClass);
-        $this->assertEquals('handleResource', $resource->handlerMethod);
+        $this->assertEquals([ManualTestHandler::class, 'handleResource'], $resource->handler);
     }
 
     public function test_can_manually_register_a_prompt_with_invokable_class_handler()
@@ -104,8 +101,7 @@ class ManualRegistrationTest extends TestCase
         $this->assertInstanceOf(RegisteredPrompt::class, $prompt);
         $this->assertEquals('manual_invokable_prompt', $prompt->schema->name);
         $this->assertEquals('A prompt handled by an invokable class.', $prompt->schema->description);
-        $this->assertEquals(ManualTestInvokableHandler::class, $prompt->handlerClass);
-        $this->assertEquals('__invoke', $prompt->handlerMethod);
+        $this->assertEquals(ManualTestInvokableHandler::class, $prompt->handler);
     }
 
     public function test_can_manually_register_a_resource_template_via_facade()
@@ -130,7 +126,6 @@ class ManualRegistrationTest extends TestCase
         $this->assertEquals('manual_item_details_template', $template->schema->name);
         $this->assertEquals('A sample resource template handler.', $template->schema->description);
         $this->assertEquals('application/vnd.api+json', $template->schema->mimeType);
-        $this->assertEquals(ManualTestHandler::class, $template->handlerClass);
-        $this->assertEquals('handleTemplate', $template->handlerMethod);
+        $this->assertEquals([ManualTestHandler::class, 'handleTemplate'], $template->handler);
     }
 }
