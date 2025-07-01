@@ -11,10 +11,10 @@ use PhpMcp\Laravel\Blueprints\ResourceTemplateBlueprint;
 use PhpMcp\Laravel\Blueprints\ToolBlueprint;
 
 /**
- * @method static ToolBlueprint tool(string|array $handlerOrName, array|string|null $handler = null)
- * @method static ResourceBlueprint resource(string $uri, array|string $handler)
- * @method static ResourceTemplateBlueprint resourceTemplate(string $uriTemplate, array|string $handler)
- * @method static PromptBlueprint prompt(string|array $handlerOrName, array|string|null $handler = null)
+ * @method static ToolBlueprint tool(string|callable|array $handlerOrName, callable|array|string|null $handler = null)
+ * @method static ResourceBlueprint resource(string $uri, callable|array|string $handler)
+ * @method static ResourceTemplateBlueprint resourceTemplate(string $uriTemplate, callable|array|string $handler)
+ * @method static PromptBlueprint prompt(string|callable|array $handlerOrName, callable|array|string|null $handler = null)
  *
  * @see \PhpMcp\Laravel\McpRegistrar
  */
