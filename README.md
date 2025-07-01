@@ -95,6 +95,21 @@ Mcp::tool([CalculatorService::class, 'add'])
 Mcp::tool(EmailService::class)
     ->description('Send emails to users');
 
+// Register a closure as a tool with custom input schema
+Mcp::tool(function(float $x, float $y): float {
+    return $x * $y;
+})
+    ->name('multiply')
+    ->description('Multiply two numbers')
+    ->inputSchema([
+        'type' => 'object',
+        'properties' => [
+            'x' => ['type' => 'number', 'description' => 'First number'],
+            'y' => ['type' => 'number', 'description' => 'Second number'],
+        ],
+        'required' => ['x', 'y'],
+    ]);
+
 // Register a resource with metadata
 Mcp::resource('config://app/settings', [UserService::class, 'getAppSettings'])
     ->name('app_settings')
@@ -102,16 +117,47 @@ Mcp::resource('config://app/settings', [UserService::class, 'getAppSettings'])
     ->mimeType('application/json')
     ->size(1024);
 
+// Register a closure as a resource
+Mcp::resource('system://time', function(): string {
+    return now()->toISOString();
+})
+    ->name('current_time')
+    ->description('Get current server time')
+    ->mimeType('text/plain');
+
 // Register a resource template for dynamic content
 Mcp::resourceTemplate('user://{userId}/profile', [UserService::class, 'getUserProfile'])
     ->name('user_profile')
     ->description('Get user profile by ID')
     ->mimeType('application/json');
 
+// Register a closure as a resource template
+Mcp::resourceTemplate('file://{path}', function(string $path): string {
+    if (!file_exists($path) || !is_readable($path)) {
+        throw new \InvalidArgumentException("File not found or not readable: {$path}");
+    }
+    return file_get_contents($path);
+})
+    ->name('file_reader')
+    ->description('Read file contents by path')
+    ->mimeType('text/plain');
+
 // Register a prompt generator
 Mcp::prompt([PromptService::class, 'generateWelcome'])
     ->name('welcome_user')
     ->description('Generate a personalized welcome message');
+
+// Register a closure as a prompt
+Mcp::prompt(function(string $topic, string $tone = 'professional'): array {
+    return [
+        [
+            'role' => 'user',
+            'content' => "Write a {$tone} summary about {$topic}. Make it informative and engaging."
+        ]
+    ];
+})
+    ->name('topic_summary')
+    ->description('Generate topic summary prompts');
 ```
 
 **Available Fluent Methods:**
@@ -120,14 +166,23 @@ Mcp::prompt([PromptService::class, 'generateWelcome'])
 - `name(string $name)`: Override the inferred name
 - `description(string $description)`: Set a custom description
 
+**For Tools:**
+- `annotations(ToolAnnotations $annotations)`: Add MCP tool annotations
+- `inputSchema(array $schema)`: Define custom JSON schema for parameters
+
 **For Resources:**
 - `mimeType(string $mimeType)`: Specify content type
 - `size(int $size)`: Set content size in bytes
-- `annotations(array|Annotations $annotations)`: Add MCP annotations
+- `annotations(Annotations $annotations)`: Add MCP annotations
+
+**For Resource Templates:**
+- `mimeType(string $mimeType)`: Specify content type
+- `annotations(Annotations $annotations)`: Add MCP annotations
 
 **Handler Formats:**
 - `[ClassName::class, 'methodName']` - Class method
 - `InvokableClass::class` - Invokable class with `__invoke()` method
+- `function(...) { ... }` - Callables (v3.2+)
 
 ### 2. Attribute-Based Discovery
 
@@ -716,6 +771,69 @@ Create a dedicated log channel in `config/logging.php`:
 ```
 
 ## Migration Guide
+
+### From v3.0 to v3.1
+
+**New Handler Types:**
+
+Laravel MCP v3.1 introduces support for closure handlers, expanding beyond just class methods and invokable classes:
+
+```php
+// v3.0 and earlier - Class-based handlers only
+Mcp::tool([CalculatorService::class, 'add'])
+    ->name('add_numbers');
+
+Mcp::tool(EmailService::class)  // Invokable class
+    ->name('send_email');
+
+// v3.1+ - Now supports closures
+Mcp::tool(function(float $x, float $y): float {
+    return $x * $y;
+})
+    ->name('multiply')
+    ->description('Multiply two numbers');
+
+Mcp::resource('system://time', function(): string {
+    return now()->toISOString();
+})
+    ->name('current_time');
+```
+
+**Input Schema Support:**
+
+Tools can now define custom JSON schemas for parameter validation:
+
+```php
+// v3.1+ - Custom input schema
+Mcp::tool([CalculatorService::class, 'calculate'])
+    ->inputSchema([
+        'type' => 'object',
+        'properties' => [
+            'operation' => [
+                'type' => 'string',
+                'enum' => ['add', 'subtract', 'multiply', 'divide']
+            ],
+            'numbers' => [
+                'type' => 'array',
+                'items' => ['type' => 'number'],
+                'minItems' => 2
+            ]
+        ],
+        'required' => ['operation', 'numbers']
+    ]);
+```
+
+**Enhanced Blueprint Methods:**
+
+New fluent methods available on blueprints:
+
+```php
+->inputSchema(array $schema)  // Define custom parameter schema
+```
+
+**No Breaking Changes:**
+
+All existing v3.0 code continues to work without modification. The new features are additive enhancements.
 
 ### From v2.x to v3.x
 

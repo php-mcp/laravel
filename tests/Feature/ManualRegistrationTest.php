@@ -32,6 +32,7 @@ class ManualRegistrationTest extends TestCase
         $this->assertEquals('manual_test_tool', $tool->schema->name);
         $this->assertEquals('A manually registered test tool.', $tool->schema->description);
         $this->assertEquals([ManualTestHandler::class, 'handleTool'], $tool->handler);
+        $this->assertTrue($tool->isManual);
         $this->assertArrayHasKey('input', $tool->schema->inputSchema['properties']);
         $this->assertEquals('string', $tool->schema->inputSchema['properties']['input']['type']);
     }
@@ -52,6 +53,7 @@ class ManualRegistrationTest extends TestCase
 
         $this->assertNotNull($tool);
         $this->assertEquals([ManualTestHandler::class, 'handleTool'], $tool->handler);
+        $this->assertTrue($tool->isManual);
         $this->assertEquals('A sample tool handler.', $tool->schema->description);
     }
 
@@ -81,6 +83,7 @@ class ManualRegistrationTest extends TestCase
         $this->assertEquals(1024, $resource->schema->size);
         $this->assertEquals(['priority' => 0.8], $resource->schema->annotations->toArray());
         $this->assertEquals([ManualTestHandler::class, 'handleResource'], $resource->handler);
+        $this->assertTrue($resource->isManual);
     }
 
     public function test_can_manually_register_a_prompt_with_invokable_class_handler()
@@ -102,6 +105,7 @@ class ManualRegistrationTest extends TestCase
         $this->assertEquals('manual_invokable_prompt', $prompt->schema->name);
         $this->assertEquals('A prompt handled by an invokable class.', $prompt->schema->description);
         $this->assertEquals(ManualTestInvokableHandler::class, $prompt->handler);
+        $this->assertTrue($prompt->isManual);
     }
 
     public function test_can_manually_register_a_resource_template_via_facade()
@@ -127,5 +131,103 @@ class ManualRegistrationTest extends TestCase
         $this->assertEquals('A sample resource template handler.', $template->schema->description);
         $this->assertEquals('application/vnd.api+json', $template->schema->mimeType);
         $this->assertEquals([ManualTestHandler::class, 'handleTemplate'], $template->handler);
+        $this->assertTrue($template->isManual);
+    }
+
+    public function test_can_manually_register_closure_handlers_and_custom_input_schema()
+    {
+        $definitionsContent = <<<'PHP'
+        <?php
+        use PhpMcp\Laravel\Facades\Mcp;
+
+        // Test closure tool with custom input schema
+        Mcp::tool(function(float $x, float $y): float {
+            return $x * $y;
+        })
+            ->name('multiply')
+            ->description('Multiply two numbers')
+            ->inputSchema([
+                'type' => 'object',
+                'properties' => [
+                    'x' => ['type' => 'number', 'description' => 'First number'],
+                    'y' => ['type' => 'number', 'description' => 'Second number'],
+                ],
+                'required' => ['x', 'y'],
+            ]);
+
+        // Test closure resource
+        Mcp::resource('system://time', function(): string {
+            return now()->toISOString();
+        })
+            ->name('current_time')
+            ->description('Get current server time')
+            ->mimeType('text/plain');
+
+        // Test closure resource template
+        Mcp::resourceTemplate('calculation://{operation}', function(string $operation): string {
+            return "Result of {$operation}";
+        })
+            ->name('calculator')
+            ->description('Perform calculations')
+            ->mimeType('text/plain');
+
+        // Test closure prompt
+        Mcp::prompt(function(string $topic): array {
+            return [
+                [
+                    'role' => 'user',
+                    'content' => "Write about {$topic}",
+                ]
+            ];
+        })
+            ->name('write_about')
+            ->description('Generate writing prompts');
+        PHP;
+        $this->setMcpDefinitions($definitionsContent);
+
+        $registry = $this->app->make('mcp.registry');
+
+        // Test closure tool
+        $tool = $registry->getTool('multiply');
+        $this->assertInstanceOf(RegisteredTool::class, $tool);
+        $this->assertEquals('multiply', $tool->schema->name);
+        $this->assertEquals('Multiply two numbers', $tool->schema->description);
+        $this->assertInstanceOf(\Closure::class, $tool->handler);
+        $this->assertTrue($tool->isManual);
+
+        // Test custom input schema
+        $schema = $tool->schema->inputSchema;
+        $this->assertEquals('object', $schema['type']);
+        $this->assertArrayHasKey('x', $schema['properties']);
+        $this->assertArrayHasKey('y', $schema['properties']);
+        $this->assertEquals('number', $schema['properties']['x']['type']);
+        $this->assertEquals('number', $schema['properties']['y']['type']);
+        $this->assertEquals(['x', 'y'], $schema['required']);
+
+        // Test closure resource
+        $resource = $registry->getResource('system://time');
+        $this->assertInstanceOf(RegisteredResource::class, $resource);
+        $this->assertEquals('current_time', $resource->schema->name);
+        $this->assertEquals('Get current server time', $resource->schema->description);
+        $this->assertEquals('text/plain', $resource->schema->mimeType);
+        $this->assertInstanceOf(\Closure::class, $resource->handler);
+        $this->assertTrue($resource->isManual);
+
+        // Test closure resource template
+        $template = $registry->getResource('calculation://add');
+        $this->assertInstanceOf(RegisteredResourceTemplate::class, $template);
+        $this->assertEquals('calculator', $template->schema->name);
+        $this->assertEquals('Perform calculations', $template->schema->description);
+        $this->assertEquals('text/plain', $template->schema->mimeType);
+        $this->assertInstanceOf(\Closure::class, $template->handler);
+        $this->assertTrue($template->isManual);
+
+        // Test closure prompt
+        $prompt = $registry->getPrompt('write_about');
+        $this->assertInstanceOf(RegisteredPrompt::class, $prompt);
+        $this->assertEquals('write_about', $prompt->schema->name);
+        $this->assertEquals('Generate writing prompts', $prompt->schema->description);
+        $this->assertInstanceOf(\Closure::class, $prompt->handler);
+        $this->assertTrue($prompt->isManual);
     }
 }

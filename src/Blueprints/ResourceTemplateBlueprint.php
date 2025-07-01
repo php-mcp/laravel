@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PhpMcp\Laravel\Blueprints;
 
+use Closure;
 use PhpMcp\Schema\Annotations;
 
 class ResourceTemplateBlueprint
@@ -16,9 +17,12 @@ class ResourceTemplateBlueprint
 
     public ?Annotations $annotations = null;
 
+    /**
+     * @param string|array|callable $handler
+     */
     public function __construct(
         public string $uriTemplate,
-        public array|string $handler,
+        public mixed $handler,
     ) {}
 
     public function name(string $name): static

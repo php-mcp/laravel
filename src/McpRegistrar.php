@@ -34,14 +34,14 @@ class McpRegistrar
      * Mcp::tool('tool_name', $handler)
      * Mcp::tool($handler) // Name will be inferred
      */
-    public function tool(string|array ...$args): ToolBlueprint
+    public function tool(string|callable|array ...$args): ToolBlueprint
     {
         $name = null;
         $handler = null;
 
-        if (count($args) === 1 && (is_array($args[0]) || (is_string($args[0]) && (class_exists($args[0]) || is_callable($args[0]))))) {
+        if (count($args) === 1 && (is_callable($args[0]) || is_array($args[0]) || (is_string($args[0]) && (class_exists($args[0]) || is_callable($args[0]))))) {
             $handler = $args[0];
-        } elseif (count($args) === 2 && is_string($args[0]) && (is_array($args[1]) || (is_string($args[1]) && (class_exists($args[1]) || is_callable($args[1]))))) {
+        } elseif (count($args) === 2 && is_string($args[0]) && (is_callable($args[1]) || is_array($args[1]) || (is_string($args[1]) && (class_exists($args[1]) || is_callable($args[1]))))) {
             $name = $args[0];
             $handler = $args[1];
         } else {
@@ -57,7 +57,7 @@ class McpRegistrar
     /**
      * Register a new resource.
      */
-    public function resource(string $uri, array|string $handler): ResourceBlueprint
+    public function resource(string $uri, callable|array|string $handler): ResourceBlueprint
     {
         $pendingResource = new ResourceBlueprint($uri, $handler);
         $this->pendingResources[] = $pendingResource;
@@ -68,7 +68,7 @@ class McpRegistrar
     /**
      * Register a new resource template.
      */
-    public function resourceTemplate(string $uriTemplate, array|string $handler): ResourceTemplateBlueprint
+    public function resourceTemplate(string $uriTemplate, callable|array|string $handler): ResourceTemplateBlueprint
     {
         $pendingResourceTemplate = new ResourceTemplateBlueprint($uriTemplate, $handler);
         $this->pendingResourceTemplates[] = $pendingResourceTemplate;
@@ -83,14 +83,14 @@ class McpRegistrar
      * Mcp::prompt('prompt_name', $handler)
      * Mcp::prompt($handler) // Name will be inferred
      */
-    public function prompt(string|array ...$args): PromptBlueprint
+    public function prompt(string|callable|array ...$args): PromptBlueprint
     {
         $name = null;
         $handler = null;
 
-        if (count($args) === 1 && (is_array($args[0]) || (is_string($args[0]) && (class_exists($args[0]) || is_callable($args[0]))))) {
+        if (count($args) === 1 && (is_callable($args[0]) || is_array($args[0]) || (is_string($args[0]) && (class_exists($args[0]) || is_callable($args[0]))))) {
             $handler = $args[0];
-        } elseif (count($args) === 2 && is_string($args[0]) && (is_array($args[1]) || (is_string($args[1]) && (class_exists($args[1]) || is_callable($args[1]))))) {
+        } elseif (count($args) === 2 && is_string($args[0]) && (is_callable($args[1]) || is_array($args[1]) || (is_string($args[1]) && (class_exists($args[1]) || is_callable($args[1]))))) {
             $name = $args[0];
             $handler = $args[1];
         } else {
@@ -106,7 +106,7 @@ class McpRegistrar
     public function applyBlueprints(ServerBuilder $builder): void
     {
         foreach ($this->pendingTools as $pendingTool) {
-            $builder->withTool($pendingTool->handler, $pendingTool->name, $pendingTool->description, $pendingTool->annotations);
+            $builder->withTool($pendingTool->handler, $pendingTool->name, $pendingTool->description, $pendingTool->annotations, $pendingTool->inputSchema);
         }
 
         foreach ($this->pendingResources as $pendingResource) {

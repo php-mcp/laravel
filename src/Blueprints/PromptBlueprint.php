@@ -8,8 +8,11 @@ class PromptBlueprint
 {
     public ?string $description = null;
 
+    /**
+     * @param string|array|callable $handler
+     */
     public function __construct(
-        public array|string $handler,
+        public mixed $handler,
         public ?string $name = null
     ) {}
 
