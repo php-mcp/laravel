@@ -169,7 +169,7 @@ class HttpServerTransport implements ServerTransportInterface
             }
 
             $this->emit('client_disconnected', [$sessionId, 'SSE stream closed']);
-        }, [
+        }, headers: [
             'Content-Type' => 'text/event-stream',
             'Cache-Control' => 'no-cache',
             'Connection' => 'keep-alive',
