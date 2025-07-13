@@ -10,6 +10,7 @@ use PhpMcp\Server\Contracts\EventStoreInterface;
 use PhpMcp\Server\Transports\HttpServerTransport;
 use PhpMcp\Server\Transports\StdioServerTransport;
 use PhpMcp\Server\Transports\StreamableHttpServerTransport;
+use Symfony\Component\Console\Output\ConsoleOutputInterface;
 
 use function Laravel\Prompts\select;
 
@@ -80,10 +81,14 @@ class ServeCommand extends Command
             return Command::FAILURE;
         }
 
-        $this->info('Starting MCP server');
-        $this->line("  - Transport: STDIO");
-        $this->line("  - Communication: STDIN/STDOUT");
-        $this->line("  - Mode: JSON-RPC over Standard I/O");
+        $output = $this->output->getOutput();
+
+        if ($output instanceof ConsoleOutputInterface) {
+            $output->getErrorOutput()->writeln("Starting MCP server");
+            $output->getErrorOutput()->writeln("  - Transport: STDIO");
+            $output->getErrorOutput()->writeln("  - Communication: STDIN/STDOUT");
+            $output->getErrorOutput()->writeln("  - Mode: JSON-RPC over Standard I/O");
+        }
 
         try {
             $transport = new StdioServerTransport;

@@ -45,8 +45,8 @@ class ServeCommandTest extends TestCase
         );
 
         $this->artisan('mcp:serve --transport=stdio')
-            ->expectsOutputToContain('Starting MCP server')
-            ->expectsOutputToContain('Transport: STDIO')
+            ->doesntExpectOutputToContain('Starting MCP server')
+            ->doesntExpectOutputToContain('Transport: STDIO')
             ->assertSuccessful();
     }
 
