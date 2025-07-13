@@ -2,6 +2,22 @@
 
 All notable changes to `php-mcp/laravel` will be documented in this file.
 
+## v3.1.0 - 2025-07-13
+
+### What's Changed
+
+* Add PHPUnit 12 support and fix test compatibility issues by @tkaratug in https://github.com/php-mcp/laravel/pull/26
+* feat: Add Closure Handler Support and Custom Input Schema for Tools by @CodeWithKyrian in https://github.com/php-mcp/laravel/pull/27
+* Fix: correct argument order in response()->stream for legacy SSE mode by @sergioalborada in https://github.com/php-mcp/laravel/pull/31
+* Fix ServeCommand output interfering with stdio JSON-RPC communication by @CodeWithKyrian in https://github.com/php-mcp/laravel/pull/34
+
+### New Contributors
+
+* @tkaratug made their first contribution in https://github.com/php-mcp/laravel/pull/26
+* @sergioalborada made their first contribution in https://github.com/php-mcp/laravel/pull/31
+
+**Full Changelog**: https://github.com/php-mcp/laravel/compare/3.0.0...3.1.0
+
 ## v3.0.0 - 2025-06-26
 
 ### Major Changes
@@ -34,6 +50,7 @@ All notable changes to `php-mcp/laravel` will be documented in this file.
 ```bash
 composer require php-mcp/laravel:^3.0
 php artisan vendor:publish --provider="PhpMcp\Laravel\McpServiceProvider"
+
 
 ```
 **Full Changelog**: https://github.com/php-mcp/laravel/compare/2.1.1...3.0.0
@@ -146,6 +163,7 @@ This release marks a **major overhaul**, bringing it into full alignment with `p
   
   
   
+  
     ```
 * **`mcp:serve` for HTTP:** The `--transport=http` option for `mcp:serve` now launches a *dedicated* ReactPHP-based server process. For serving MCP via your main Laravel application routes, ensure the `http_integrated` transport is enabled in `config/mcp.php` and your web server is configured appropriately.
 * **Event Handling:** If you were directly listening to internal events from the previous version, these may have changed. Rely on the documented Laravel events (`ToolsListChanged`, etc.).
@@ -208,6 +226,7 @@ composer require php-mcp/laravel
 
 # 2. Publish the configuration file (optional but recommended)
 php artisan vendor:publish --provider="PhpMcp\Laravel\Server\McpServiceProvider" --tag="mcp-config"
+
 
 
 
