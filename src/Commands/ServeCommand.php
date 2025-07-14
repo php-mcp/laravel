@@ -151,6 +151,7 @@ class ServeCommand extends Command
     {
         $enableJsonResponse = config('mcp.transports.http_dedicated.enable_json_response', true);
         $eventStore = $this->createEventStore();
+        $stateless = config('mcp.transports.http_dedicated.stateless', false);
 
         $this->info("Starting MCP server on http://{$host}:{$port}");
         $this->line("  - Transport: Streamable HTTP");
@@ -163,6 +164,7 @@ class ServeCommand extends Command
             mcpPath: $pathPrefix,
             sslContext: $sslContextOptions,
             enableJsonResponse: $enableJsonResponse,
+            stateless: $stateless,
             eventStore: $eventStore
         );
 

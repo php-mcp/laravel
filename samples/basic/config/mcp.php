@@ -84,6 +84,7 @@ return [
             'host' => env('MCP_HTTP_DEDICATED_HOST', '127.0.0.1'),
             'port' => (int) env('MCP_HTTP_DEDICATED_PORT', 8090),
             'path_prefix' => env('MCP_HTTP_DEDICATED_PATH_PREFIX', 'mcp'),
+            'stateless' => (bool) env('MCP_HTTP_DEDICATED_STATELESS', false),
             'ssl_context_options' => [],
             'enable_json_response' => (bool) env('MCP_HTTP_DEDICATED_JSON_RESPONSE', true),
             'event_store' => null, // FQCN or null
@@ -93,6 +94,7 @@ return [
             'enabled' => (bool) env('MCP_HTTP_INTEGRATED_ENABLED', true),
             'legacy' => (bool) env('MCP_HTTP_INTEGRATED_LEGACY', false),
             'route_prefix' => env('MCP_HTTP_INTEGRATED_ROUTE_PREFIX', 'mcp'),
+            'stateless' => (bool) env('MCP_HTTP_INTEGRATED_STATELESS', true),
             'middleware' => explode(',', env('MCP_HTTP_INTEGRATED_MIDDLEWARE', 'api')),
             'domain' => env('MCP_HTTP_INTEGRATED_DOMAIN'),
             'sse_poll_interval' => (int) env('MCP_HTTP_INTEGRATED_SSE_POLL_SECONDS', 1),
