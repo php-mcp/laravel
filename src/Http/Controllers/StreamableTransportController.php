@@ -19,8 +19,9 @@ class StreamableTransportController
     {
         $eventStore = $this->createEventStore();
         $sessionManager = $server->getSessionManager();
+        $stateless = config('mcp.transports.http_integrated.stateless', false);
 
-        $this->transport = new StreamableHttpServerTransport($sessionManager, $eventStore);
+        $this->transport = new StreamableHttpServerTransport($sessionManager, $eventStore, $stateless);
         $server->listen($this->transport, false);
     }
 

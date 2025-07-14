@@ -29,7 +29,8 @@ class StreamableHttpServerTransport implements ServerTransportInterface
 
     public function __construct(
         protected SessionManager $sessionManager,
-        protected ?EventStoreInterface $eventStore = null
+        protected ?EventStoreInterface $eventStore = null,
+        protected bool $stateless = false
     ) {}
 
     protected function generateId(): string
@@ -104,27 +105,33 @@ class StreamableHttpServerTransport implements ServerTransportInterface
         $isInitializeRequest = ($message instanceof JsonRpcRequest && $message->method === 'initialize');
         $sessionId = null;
 
-        if ($isInitializeRequest) {
-            if ($request->hasHeader('Mcp-Session-Id')) {
-                Log::warning('Client sent Mcp-Session-Id with InitializeRequest. Ignoring.', ['clientSentId' => $request->header('Mcp-Session-Id')]);
-                $error = Error::forInvalidRequest('Invalid request: Session already initialized. Mcp-Session-Id header not allowed with InitializeRequest.', $message->getId());
-                return response()->json($error, 400, $this->getCorsHeaders());
-            }
-
+        if ($this->stateless) {
             $sessionId = $this->generateId();
             $this->emit('client_connected', [$sessionId]);
         } else {
-            $sessionId = $request->header('Mcp-Session-Id');
+            if ($isInitializeRequest) {
+                if ($request->hasHeader('Mcp-Session-Id')) {
+                    Log::warning('Client sent Mcp-Session-Id with InitializeRequest. Ignoring.', ['clientSentId' => $request->header('Mcp-Session-Id')]);
+                    $error = Error::forInvalidRequest('Invalid request: Session already initialized. Mcp-Session-Id header not allowed with InitializeRequest.', $message->getId());
+                    return response()->json($error, 400, $this->getCorsHeaders());
+                }
 
-            if (empty($sessionId)) {
-                Log::warning('POST request without Mcp-Session-Id');
-                $error = Error::forInvalidRequest('Mcp-Session-Id header required for POST requests', $message->getId());
-                return response()->json($error, 400, $this->getCorsHeaders());
+                $sessionId = $this->generateId();
+                $this->emit('client_connected', [$sessionId]);
+            } else {
+                $sessionId = $request->header('Mcp-Session-Id');
+
+                if (empty($sessionId)) {
+                    Log::warning('POST request without Mcp-Session-Id');
+                    $error = Error::forInvalidRequest('Mcp-Session-Id header required for POST requests', $message->getId());
+                    return response()->json($error, 400, $this->getCorsHeaders());
+                }
             }
         }
 
         $context = [
             'is_initialize_request' => $isInitializeRequest,
+            'stateless' => $this->stateless,
         ];
 
         $nRequests = match (true) {
@@ -171,8 +178,12 @@ class StreamableHttpServerTransport implements ServerTransportInterface
                 ...$this->getCorsHeaders()
             ];
 
-            if ($context['is_initialize_request'] ?? false) {
+            if ($context['is_initialize_request'] ?? false && !$this->stateless) {
                 $headers['Mcp-Session-Id'] = $sessionId;
+            }
+
+            if ($this->stateless) {
+                $this->emit('client_disconnected', [$sessionId, 'Stateless request completed']);
             }
 
             return response()->make($data, 200, $headers);
@@ -195,7 +206,7 @@ class StreamableHttpServerTransport implements ServerTransportInterface
             'X-Accel-Buffering' => 'no',
         ], $this->getCorsHeaders());
 
-        if ($context['is_initialize_request'] ?? false) {
+        if ($context['is_initialize_request'] ?? false && !$this->stateless) {
             $headers['Mcp-Session-Id'] = $sessionId;
         }
 
@@ -210,6 +221,10 @@ class StreamableHttpServerTransport implements ServerTransportInterface
             $messages = $this->dequeueMessagesForContext($sessionId, 'post_sse', $streamId);
 
             $this->sendSseEvent($messages[0]['data'], $messages[0]['id']);
+
+            if ($this->stateless) {
+                $this->emit('client_disconnected', [$sessionId, 'Stateless request completed']);
+            }
         }, headers: $headers);
     }
 
@@ -218,6 +233,12 @@ class StreamableHttpServerTransport implements ServerTransportInterface
      */
     public function handleGetRequest(Request $request): StreamedResponse|Response
     {
+        if ($this->stateless) {
+            return new Response('SSE not available in stateless mode', 405, [
+                'Allow' => 'POST, DELETE, OPTIONS'
+            ]);
+        }
+
         $acceptHeader = $request->header('Accept');
         if (!str_contains($acceptHeader, 'text/event-stream')) {
             $error = Error::forInvalidRequest("Not Acceptable: Client must accept text/event-stream for GET requests.");
@@ -274,6 +295,10 @@ class StreamableHttpServerTransport implements ServerTransportInterface
      */
     public function handleDeleteRequest(Request $request): Response
     {
+        if ($this->stateless) {
+            return response()->noContent(headers: $this->getCorsHeaders());
+        }
+
         $sessionId = $request->header('Mcp-Session-Id');
         if (empty($sessionId)) {
             Log::warning("DELETE request without Mcp-Session-Id.");
@@ -285,7 +310,7 @@ class StreamableHttpServerTransport implements ServerTransportInterface
 
         $this->emit('client_disconnected', [$sessionId, 'Session terminated by DELETE request']);
 
-        return response()->noContent(204, $this->getCorsHeaders());
+        return response()->noContent(headers: $this->getCorsHeaders());
     }
 
     /**
