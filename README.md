@@ -41,7 +41,7 @@ composer require php-mcp/laravel:^3.0 -W
 Publish the configuration file:
 
 ```bash
-php artisan vendor:publish --provider="PhpMcp\Laravel\McpServiceProvider" --tag="mcp-config"
+php artisan vendor:publish --provider="PhpMcp\Laravel\Server\McpServiceProvider" --tag="mcp-config"
 ```
 
 For database session storage, publish the migration:
