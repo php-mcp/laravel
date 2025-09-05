@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace PhpMcp\Laravel\Commands;
 
 use Illuminate\Console\Command;
-use PhpMcp\Server\Server;
 use PhpMcp\Server\Contracts\EventStoreInterface;
+use PhpMcp\Server\Server;
 use PhpMcp\Server\Transports\HttpServerTransport;
 use PhpMcp\Server\Transports\StdioServerTransport;
 use PhpMcp\Server\Transports\StreamableHttpServerTransport;
@@ -21,18 +21,19 @@ class ServeCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'mcp:serve 
+    protected $signature = 'mcp:serve
                             {--transport= : The transport to use (stdio or http)}
                             {--H|host= : Host for the HTTP transport (overrides config)}
                             {--P|port= : Port for the HTTP transport (overrides config)}
-                            {--path-prefix= : URL path prefix for the HTTP transport (overrides config)}';
+                            {--path-prefix= : URL path prefix for the HTTP transport (overrides config)}
+                            {--watch : Watch for file changes and automatically reload the server}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Starts the MCP server using the specified transport (stdio or http).';
+    protected $description = 'Starts the MCP server using the specified transport (stdio or http). Use --watch to enable automatic reloading on file changes.';
 
     /**
      * Execute the console command.
@@ -43,6 +44,10 @@ class ServeCommand extends Command
     public function handle(Server $server): int
     {
         $transportOption = $this->getTransportOption();
+
+        if ($this->option('watch')) {
+            return $this->handleWithFileWatcher($server, $transportOption);
+        }
 
         return match ($transportOption) {
             'stdio' => $this->handleStdioTransport($server),
@@ -84,10 +89,10 @@ class ServeCommand extends Command
         $output = $this->output->getOutput();
 
         if ($output instanceof ConsoleOutputInterface) {
-            $output->getErrorOutput()->writeln("Starting MCP server");
-            $output->getErrorOutput()->writeln("  - Transport: STDIO");
-            $output->getErrorOutput()->writeln("  - Communication: STDIN/STDOUT");
-            $output->getErrorOutput()->writeln("  - Mode: JSON-RPC over Standard I/O");
+            $output->getErrorOutput()->writeln('Starting MCP server');
+            $output->getErrorOutput()->writeln('  - Transport: STDIO');
+            $output->getErrorOutput()->writeln('  - Communication: STDIN/STDOUT');
+            $output->getErrorOutput()->writeln('  - Mode: JSON-RPC over Standard I/O');
         }
 
         try {
@@ -123,11 +128,11 @@ class ServeCommand extends Command
 
     private function handleSseHttpTransport(Server $server, string $host, int $port, string $pathPrefix, ?array $sslContextOptions): int
     {
-        $this->info("Starting MCP server on http://{$host}:{$port}");
-        $this->line("  - Transport: Legacy HTTP");
+        $this->line("🟢 Starting MCP server on http://{$host}:{$port}");
+        $this->line('  - Transport: Legacy HTTP');
         $this->line("  - SSE endpoint: http://{$host}:{$port}/{$pathPrefix}/sse");
         $this->line("  - Message endpoint: http://{$host}:{$port}/{$pathPrefix}/message");
-        $this->line("  - Mode: Server-Sent Events");
+        $this->line('  - Mode: Server-Sent Events');
 
         $transport = new HttpServerTransport(
             host: $host,
@@ -153,10 +158,10 @@ class ServeCommand extends Command
         $eventStore = $this->createEventStore();
         $stateless = config('mcp.transports.http_dedicated.stateless', false);
 
-        $this->info("Starting MCP server on http://{$host}:{$port}");
-        $this->line("  - Transport: Streamable HTTP");
+        $this->line("🟢 Starting MCP server on http://{$host}:{$port}");
+        $this->line('  - Transport: Streamable HTTP');
         $this->line("  - MCP endpoint: http://{$host}:{$port}/{$pathPrefix}");
-        $this->line("  - Mode: " . ($enableJsonResponse ? 'JSON' : 'SSE Streaming'));
+        $this->line('  - Mode: '.($enableJsonResponse ? 'JSON' : 'SSE Streaming'));
 
         $transport = new StreamableHttpServerTransport(
             host: $host,
@@ -186,7 +191,7 @@ class ServeCommand extends Command
     {
         $eventStoreFqcn = config('mcp.transports.http_dedicated.event_store');
 
-        if (!$eventStoreFqcn) {
+        if (! $eventStoreFqcn) {
             return null;
         }
 
@@ -197,7 +202,7 @@ class ServeCommand extends Command
         if (is_string($eventStoreFqcn) && class_exists($eventStoreFqcn)) {
             $instance = app($eventStoreFqcn);
 
-            if (!$instance instanceof EventStoreInterface) {
+            if (! $instance instanceof EventStoreInterface) {
                 throw new \InvalidArgumentException(
                     "Event store class {$eventStoreFqcn} must implement EventStoreInterface"
                 );
@@ -209,6 +214,184 @@ class ServeCommand extends Command
         throw new \InvalidArgumentException(
             "Invalid event store configuration: {$eventStoreFqcn}"
         );
+    }
+
+    /**
+     * Handle the command with file watching enabled
+     */
+    private function handleWithFileWatcher(Server $server, string $transportOption): int
+    {
+        if ($transportOption === 'stdio') {
+            $this->error('🛑 File watching is not supported with STDIO transport as it requires process restart.');
+
+            return Command::FAILURE;
+        }
+
+        $this->line('🟢 Starting MCP server with file watching enabled...');
+        $this->line('  - File changes will trigger server reload');
+
+        $watchedPaths = $this->getWatchedPaths();
+        $this->line('  - Watching: '.implode(', ', $watchedPaths));
+
+        while (true) {
+            $lastModified = $this->getLastModificationTime($watchedPaths);
+
+            $process = $this->startServerProcess($transportOption);
+
+            $this->line('👀 Server started. Watching for file changes...');
+
+            while ($process && $this->isProcessRunning($process)) {
+                usleep(2000000); // 2 seconds
+
+                $currentModified = $this->getLastModificationTime($watchedPaths);
+                if ($currentModified > $lastModified) {
+                    $this->line('⏳ File changes detected. Restarting server...');
+                    $this->stopProcess($process);
+                    continue 2;
+                }
+            }
+
+            if (! $this->isProcessRunning($process)) {
+                $restartDelay = 5;
+                $this->error("🛑 Server process died unexpectedly. Restarting in {$restartDelay}...");
+                usleep($restartDelay * 1000000); // 5 seconds
+            }
+        }
+
+        return Command::SUCCESS;
+    }
+
+    /**
+     * Get paths to watch for changes
+     */
+    private function getWatchedPaths(): array
+    {
+        $basePath = config('mcp.discovery.base_path', base_path());
+        $discoveryDirs = config('mcp.discovery.directories', ['app/Mcp']);
+        $mcpConfigPath = config('mcp.discovery.definitions_file', base_path('routes/mcp.php'));
+
+        $paths = [];
+
+        foreach ($discoveryDirs as $dir) {
+            $fullPath = rtrim($basePath, '/').'/'.ltrim($dir, '/');
+            if (is_dir($fullPath)) {
+                $paths[] = $fullPath;
+            }
+        }
+
+        if (file_exists($mcpConfigPath)) {
+            $paths[] = dirname($mcpConfigPath);
+        }
+
+        $configPath = base_path('config');
+        if (is_dir($configPath)) {
+            $paths[] = $configPath;
+        }
+
+        return array_unique($paths);
+    }
+
+    /**
+     * Get the latest modification time from watched paths
+     */
+    private function getLastModificationTime(array $paths): int
+    {
+        $latestTime = 0;
+
+        foreach ($paths as $path) {
+            if (is_file($path)) {
+                $latestTime = max($latestTime, filemtime($path));
+            } elseif (is_dir($path)) {
+                $iterator = new \RecursiveIteratorIterator(
+                    new \RecursiveDirectoryIterator($path, \RecursiveDirectoryIterator::SKIP_DOTS)
+                );
+
+                foreach ($iterator as $file) {
+                    if ($file->isFile() && $file->getExtension() === 'php') {
+                        $latestTime = max($latestTime, $file->getMTime());
+                    }
+                }
+            }
+        }
+
+        return $latestTime;
+    }
+
+    /**
+     * Start the server process
+     */
+    private function startServerProcess(string $transportOption): array
+    {
+        $command = [
+            PHP_BINARY,
+            base_path('artisan'),
+            'mcp:serve',
+            '--transport='.$transportOption,
+        ];
+
+        if ($transportOption === 'http') {
+            if ($host = $this->option('host')) {
+                $command[] = '--host='.$host;
+            }
+            if ($port = $this->option('port')) {
+                $command[] = '--port='.$port;
+            }
+            if ($pathPrefix = $this->option('path-prefix')) {
+                $command[] = '--path-prefix='.$pathPrefix;
+            }
+        }
+
+        $descriptorSpec = [
+            0 => ['pipe', 'r'],  // stdin
+            1 => ['pipe', 'w'],  // stdout
+            2 => ['pipe', 'w'],   // stderr
+        ];
+
+        $process = proc_open(implode(' ', array_map('escapeshellarg', $command)), $descriptorSpec, $pipes);
+
+        if (! is_resource($process)) {
+            throw new \RuntimeException('Failed to start server process');
+        }
+
+        return [
+            'process' => $process,
+            'pipes' => $pipes,
+        ];
+    }
+
+    /**
+     * Check if process is still running
+     */
+    private function isProcessRunning(array $processInfo): bool
+    {
+        if (! isset($processInfo['process']) || ! is_resource($processInfo['process'])) {
+            return false;
+        }
+
+        $status = proc_get_status($processInfo['process']);
+
+        return $status['running'];
+    }
+
+    /**
+     * Stop the process
+     */
+    private function stopProcess(array $processInfo): void
+    {
+        if (! isset($processInfo['process']) || ! is_resource($processInfo['process'])) {
+            return;
+        }
+
+        if (isset($processInfo['pipes'])) {
+            foreach ($processInfo['pipes'] as $pipe) {
+                if (is_resource($pipe)) {
+                    fclose($pipe);
+                }
+            }
+        }
+
+        proc_terminate($processInfo['process']);
+        proc_close($processInfo['process']);
     }
 
     private function handleInvalidTransport(string $transportOption): int

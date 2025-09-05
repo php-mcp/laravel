@@ -327,7 +327,7 @@ The integrated transport serves MCP through your Laravel application's routes:
 ```php
 // Routes are automatically registered at:
 // GET  /mcp       - Streamable connection endpoint
-// POST /mcp       - Message sending endpoint  
+// POST /mcp       - Message sending endpoint
 // DELETE /mcp     - Session termination endpoint
 
 // Legacy mode (if enabled):
@@ -434,7 +434,7 @@ php artisan mcp:serve --transport=http \
 **Transport Modes:**
 
 - **Streamable Mode** (`legacy: false`): Enhanced transport with resumability and event sourcing
-- **Legacy Mode** (`legacy: true`): Deprecated HTTP+SSE transport. 
+- **Legacy Mode** (`legacy: true`): Deprecated HTTP+SSE transport.
 
 **JSON Response Mode:**
 
@@ -451,7 +451,7 @@ php artisan mcp:serve --transport=http \
 This creates a long-running process that should be managed with:
 
 - **Supervisor** (recommended)
-- **systemd** 
+- **systemd**
 - **Docker** containers
 - **Process managers**
 
@@ -566,13 +566,39 @@ php artisan mcp:serve --transport=http \
     --host=0.0.0.0 \
     --port=8091 \
     --path-prefix=api/mcp
+
+# HTTP transport with file watching for development
+php artisan mcp:serve --transport=http --watch
 ```
+
+### File Watching for Development
+
+The `--watch` flag enables automatic server reloading when project files change, making development more efficient:
+
+```bash
+# Enable file watching with HTTP transport
+php artisan mcp:serve --transport=http --watch
+```
+
+**What gets watched:**
+- MCP discovery directories (configured in `mcp.discovery.directories`)
+- MCP configuration files (`config/mcp.php`)
+- MCP route definitions (`routes/mcp.php`)
+
+**Features:**
+- Automatic server restart when PHP files in watched directories change
+- Preserves server configuration and transport options
+- Real-time feedback on file changes
+- Development-friendly error handling
+
+> ⚠️ **Note**: File watching is only supported with HTTP transport. STDIO transport cannot be reloaded automatically as it requires process restart. If you need to use the STDIO transport, consider using `npx mcp-remote`.
 
 **Command Options:**
 - `--transport`: Choose transport type (`stdio` or `http`)
 - `--host`: Host address for HTTP transport
-- `--port`: Port number for HTTP transport  
+- `--port`: Port number for HTTP transport
 - `--path-prefix`: URL path prefix for HTTP transport
+- `--watch`: Watch for file changes and automatically reload the server (HTTP transport only)
 
 ## Dynamic Updates & Events
 
@@ -591,7 +617,7 @@ ToolsListChanged::dispatch();
 // Notify about resource list changes
 ResourcesListChanged::dispatch();
 
-// Notify about prompt list changes  
+// Notify about prompt list changes
 PromptsListChanged::dispatch();
 ```
 
@@ -625,13 +651,13 @@ class PostService
     public function createPost(
         #[Schema(minLength: 5, maxLength: 200)]
         string $title,
-        
+
         #[Schema(minLength: 10)]
         string $content,
-        
+
         #[Schema(enum: ['draft', 'published', 'archived'])]
         string $status = 'draft',
-        
+
         #[Schema(type: 'array', items: ['type' => 'string'])]
         array $tags = []
     ): array {
@@ -709,14 +735,14 @@ class OrderService
     public function processOrder(array $orderData): array
     {
         $this->logger->info('Processing order', $orderData);
-        
+
         $payment = $this->gateway->charge($orderData['amount']);
-        
+
         if ($payment->successful()) {
             $this->notifications->sendOrderConfirmation($orderData['email']);
             return ['status' => 'success', 'order_id' => $payment->id];
         }
-        
+
         throw new \Exception('Payment failed: ' . $payment->error);
     }
 }
@@ -732,15 +758,15 @@ Tool handlers can throw exceptions that are automatically converted to proper JS
 public function getUser(int $userId): array
 {
     $user = User::find($userId);
-    
+
     if (!$user) {
         throw new \InvalidArgumentException("User with ID {$userId} not found");
     }
-    
+
     if (!$user->isActive()) {
         throw new \RuntimeException("User account is deactivated");
     }
-    
+
     return $user->toArray();
 }
 ```
@@ -846,7 +872,7 @@ All existing v3.0 code continues to work without modification. The new features 
     'resources' => ['enabled' => true, 'subscribe' => true],
 ],
 
-// New structure  
+// New structure
 'capabilities' => [
     'tools' => true,
     'toolsListChanged' => true,
@@ -942,7 +968,7 @@ class ContentService
     public function generateContentSummary(string $postSlug, int $maxWords = 50): array
     {
         $post = Post::where('slug', $postSlug)->firstOrFail();
-        
+
         return [
             [
                 'role' => 'user',
@@ -962,7 +988,7 @@ class ApiService
     public function sendNotification(
         #[Schema(format: 'email')]
         string $email,
-        
+
         string $subject,
         string $message
     ): array {

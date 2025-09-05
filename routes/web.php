@@ -1,8 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use PhpMcp\Laravel\Http\Controllers\StreamableTransportController;
 use PhpMcp\Laravel\Http\Controllers\SseTransportController;
+use PhpMcp\Laravel\Http\Controllers\StreamableTransportController;
 
 if (config('mcp.transports.http_integrated.legacy', false)) {
     Route::get('/sse', [SseTransportController::class, 'handleSse'])
