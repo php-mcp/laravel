@@ -98,7 +98,7 @@ return [
             'legacy' => (bool) env('MCP_HTTP_INTEGRATED_LEGACY', false),
             'route_prefix' => env('MCP_HTTP_INTEGRATED_ROUTE_PREFIX', 'mcp'),
             'stateless' => (bool) env('MCP_HTTP_INTEGRATED_STATELESS', false),
-            'middleware' => ['api'],
+            'middleware' => ['api', 'auth:sanctum'],
             'domain' => env('MCP_HTTP_INTEGRATED_DOMAIN'),
             'sse_poll_interval' => (int) env('MCP_HTTP_INTEGRATED_SSE_POLL_SECONDS', 1),
             'cors_origin' => env('MCP_HTTP_INTEGRATED_CORS_ORIGIN', '*'),
