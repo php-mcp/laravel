@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PhpMcp\Laravel\Http\Controllers;
 
 use Illuminate\Http\Request;
+use PhpMcp\Laravel\Http\Middleware\McpAuthenticationMiddleware;
 use PhpMcp\Laravel\Transports\HttpServerTransport;
 use PhpMcp\Server\Server;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,7 +20,7 @@ class SseTransportController
      *
      * Inject dependencies resolved by the service container.
      */
-    public function __construct(Server $server)
+    public function __construct(Server $server, protected McpAuthenticationMiddleware $authMiddleware)
     {
         $this->transport = new HttpServerTransport($server->getSessionManager());
         $server->listen($this->transport, false);
@@ -31,7 +32,9 @@ class SseTransportController
      */
     public function handleMessage(Request $request): Response
     {
-        return $this->transport->handleMessageRequest($request);
+        return $this->authMiddleware->handle($request, function ($request) {
+            return $this->transport->handleMessageRequest($request);
+        });
     }
 
     /**
@@ -40,6 +43,8 @@ class SseTransportController
      */
     public function handleSse(Request $request): StreamedResponse
     {
-        return $this->transport->handleSseRequest($request);
+        return $this->authMiddleware->handle($request, function ($request) {
+            return $this->transport->handleSseRequest($request);
+        });
     }
 }

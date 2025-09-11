@@ -14,7 +14,9 @@ use PhpMcp\Laravel\Commands\ServeCommand;
 use PhpMcp\Laravel\Events\PromptsListChanged;
 use PhpMcp\Laravel\Events\ResourcesListChanged;
 use PhpMcp\Laravel\Events\ToolsListChanged;
+use PhpMcp\Laravel\Http\Middleware\McpAuthenticationMiddleware;
 use PhpMcp\Laravel\Listeners\McpNotificationListener;
+use PhpMcp\Laravel\Support\McpContext;
 use PhpMcp\Schema\ServerCapabilities;
 use PhpMcp\Server\Registry;
 use PhpMcp\Server\Server;
@@ -32,8 +34,11 @@ class McpServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__ . '/../config/mcp.php', 'mcp');
 
         $this->app->singleton(McpRegistrar::class, fn() => new McpRegistrar());
+        $this->app->singleton(McpContext::class);
+        $this->app->singleton(McpAuthenticationMiddleware::class);
 
         $this->app->alias(McpRegistrar::class, 'mcp.registrar');
+        $this->app->alias(McpContext::class, 'mcp.context');
     }
 
     public function boot(): void

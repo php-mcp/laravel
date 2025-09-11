@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PhpMcp\Laravel\Http\Controllers;
 
 use Illuminate\Http\Request;
+use PhpMcp\Laravel\Http\Middleware\McpAuthenticationMiddleware;
 use PhpMcp\Laravel\Transports\StreamableHttpServerTransport;
 use PhpMcp\Server\Contracts\EventStoreInterface;
 use PhpMcp\Server\Server;
@@ -15,7 +16,7 @@ class StreamableTransportController
 {
     private StreamableHttpServerTransport $transport;
 
-    public function __construct(Server $server)
+    public function __construct(Server $server, protected McpAuthenticationMiddleware $authMiddleware)
     {
         $eventStore = $this->createEventStore();
         $sessionManager = $server->getSessionManager();
@@ -27,17 +28,23 @@ class StreamableTransportController
 
     public function handleGet(Request $request): Response|StreamedResponse
     {
-        return $this->transport->handleGetRequest($request);
+        return $this->authMiddleware->handle($request, function ($request) {
+            return $this->transport->handleGetRequest($request);
+        });
     }
 
     public function handlePost(Request $request): Response|StreamedResponse
     {
-        return $this->transport->handlePostRequest($request);
+        return $this->authMiddleware->handle($request, function ($request) {
+            return $this->transport->handlePostRequest($request);
+        });
     }
 
     public function handleDelete(Request $request): Response
     {
-        return $this->transport->handleDeleteRequest($request);
+        return $this->authMiddleware->handle($request, function ($request) {
+            return $this->transport->handleDeleteRequest($request);
+        });
     }
 
     /**
