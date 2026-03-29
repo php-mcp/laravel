@@ -2,6 +2,19 @@
 
 All notable changes to `php-mcp/laravel` will be documented in this file.
 
+## v4.0.0 - 2026-03-29
+
+### What's Changed
+
+* Feat: Add stateless mode support for HTTP transports by @CodeWithKyrian in https://github.com/php-mcp/laravel/pull/36
+* Laravel 13 Support by @27pchrisl in https://github.com/php-mcp/laravel/pull/48
+
+### New Contributors
+
+* @27pchrisl made their first contribution in https://github.com/php-mcp/laravel/pull/48
+
+**Full Changelog**: https://github.com/php-mcp/laravel/compare/3.1.0...4.0.0
+
 ## v3.1.0 - 2025-07-13
 
 ### What's Changed
@@ -50,6 +63,7 @@ All notable changes to `php-mcp/laravel` will be documented in this file.
 ```bash
 composer require php-mcp/laravel:^3.0
 php artisan vendor:publish --provider="PhpMcp\Laravel\McpServiceProvider"
+
 
 
 ```
@@ -164,6 +178,7 @@ This release marks a **major overhaul**, bringing it into full alignment with `p
   
   
   
+  
     ```
 * **`mcp:serve` for HTTP:** The `--transport=http` option for `mcp:serve` now launches a *dedicated* ReactPHP-based server process. For serving MCP via your main Laravel application routes, ensure the `http_integrated` transport is enabled in `config/mcp.php` and your web server is configured appropriately.
 * **Event Handling:** If you were directly listening to internal events from the previous version, these may have changed. Rely on the documented Laravel events (`ToolsListChanged`, etc.).
@@ -226,6 +241,7 @@ composer require php-mcp/laravel
 
 # 2. Publish the configuration file (optional but recommended)
 php artisan vendor:publish --provider="PhpMcp\Laravel\Server\McpServiceProvider" --tag="mcp-config"
+
 
 
 
